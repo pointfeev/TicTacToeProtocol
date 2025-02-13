@@ -13,7 +13,7 @@ class Client {
 
     static final Charset charset = StandardCharsets.US_ASCII;
 
-    static boolean connect() {
+    static synchronized boolean connect() {
         try {
             socket = new Socket(host, port);
             in = socket.getInputStream();
@@ -27,7 +27,7 @@ class Client {
         return true;
     }
 
-    static void disconnect() {
+    static synchronized void disconnect() {
         if (in != null) {
             try {
                 in.close();
@@ -116,7 +116,7 @@ class Client {
      *     `o` – Game starting, you are O
      *     Indicate for each player if they are `X` or `O`
      */
-    boolean receiveMessage() {
+    static synchronized boolean receiveMessage() {
         try {
             byte[] bytes = new byte[100];
             // TODO: verify how many bytes we will send and alter the byte array (buffer) length
@@ -143,7 +143,7 @@ class Client {
      * Leave/disconnect (can occur mid-game)
      *     `Q` (or just close socket)
      */
-    static boolean sendMessage(byte[] bytes) {
+    static synchronized boolean sendMessage(byte[] bytes) {
         try {
             out.write(bytes);
         } catch (IOException e) {

@@ -9,6 +9,20 @@ class Server {
     static ServerSocket serverSocket = null;
     static ArrayList<ClientThread> clients = new ArrayList<>();
 
+    static synchronized void shutdown() {
+        for (int i = clients.size() - 1; i >= 0; i--) {
+            clients.get(i).disconnect();
+        }
+
+        if (serverSocket != null) {
+            try {
+                serverSocket.close();
+            } catch (IOException e) {
+                // ignore
+            }
+        }
+    }
+
     public static void main(String[] args) throws IOException {
         int port = 9999;
         if (args.length >= 1) {
@@ -20,15 +34,19 @@ class Server {
             }
         }
 
+        Runtime.getRuntime().addShutdownHook(new Thread(Server::shutdown));
+
         serverSocket = new ServerSocket(port);
         System.out.printf("Server listening on port %d\n", port);
-        while (true) {
+        while (!serverSocket.isClosed()) {
             try {
                 new ClientThread(serverSocket.accept()).start();
             } catch (IOException e) {
                 // ignore
             }
         }
+
+        shutdown();
     }
 }
 
@@ -43,7 +61,7 @@ class ClientThread extends Thread {
         this.socket = socket;
     }
 
-    boolean connect() {
+    synchronized boolean connect() {
         try {
             in = socket.getInputStream();
             out = socket.getOutputStream();
@@ -52,14 +70,16 @@ class ClientThread extends Thread {
             return false;
         }
 
-        Server.clients.add(this);
+        if (!Server.clients.add(this)) {
+            disconnect();
+            return false;
+        }
         System.out.printf("Client connected: %s\n", socket.getInetAddress().getHostAddress());
         return true;
     }
 
-    void disconnect() {
-        if (Server.clients.contains(this)) {
-            Server.clients.remove(this);
+    synchronized void disconnect() {
+        if (Server.clients.remove(this)) {
             System.out.printf("Client disconnected: %s\n", socket.getInetAddress().getHostAddress());
         }
 
@@ -73,6 +93,8 @@ class ClientThread extends Thread {
         }
 
         if (out != null) {
+            // TODO: send disconnect message to client?
+
             try {
                 out.close();
             } catch (IOException e) {
@@ -111,7 +133,7 @@ class ClientThread extends Thread {
      * Leave/disconnect (can occur mid-game)
      *     `Q` (or just close socket)
      */
-    boolean receiveMessage() {
+    synchronized boolean receiveMessage() {
         try {
             byte[] bytes = new byte[1];
             int bytesRead = in.read(bytes);
@@ -166,7 +188,7 @@ class ClientThread extends Thread {
      *     `o` – Game starting, you are O
      *     Indicate for each player if they are `X` or `O`
      */
-    boolean sendMessage(byte[] bytes) {
+    synchronized boolean sendMessage(byte[] bytes) {
         try {
             out.write(bytes);
         } catch (IOException e) {
