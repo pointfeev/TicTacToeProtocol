@@ -5,19 +5,19 @@ import java.net.Socket;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
-class Client {
-    static String host = "127.0.0.1";
-    static int port = 9999;
-
-    static Socket socket;
-    static InputStream in;
-    static OutputStream out;
+class ServerClient extends Thread {
+    Socket socket;
+    InputStream in;
+    OutputStream out;
 
     static final Charset charset = StandardCharsets.US_ASCII;
 
-    static boolean connect() {
+    ServerClient(Socket socket) {
+        this.socket = socket;
+    }
+
+    boolean connect() {
         try {
-            socket = new Socket(host, port);
             in = socket.getInputStream();
             out = socket.getOutputStream();
         } catch (IOException e) {
@@ -25,11 +25,15 @@ class Client {
             return false;
         }
 
-        System.out.printf("Connected to server at %s:%d\n", socket.getInetAddress().getHostAddress(), socket.getPort());
+        if (!Server.clients.add(this)) {
+            disconnect();
+            return false;
+        }
+        System.out.printf("Client connected: %s\n", socket.getInetAddress().getHostAddress());
         return true;
     }
 
-    static void disconnect() {
+    void disconnect() {
         if (in != null) {
             try {
                 in.close();
@@ -55,38 +59,47 @@ class Client {
         } catch (IOException e) {
             // ignore
         }
-        System.out.print("Disconnected from server\n");
+        if (Server.clients.remove(this)) {
+            System.out.printf("Client disconnected: %s\n", socket.getInetAddress().getHostAddress());
+        }
         socket = null;
     }
 
-    public static void main(String[] args) throws IOException {
-        if (args.length >= 1) {
-            host = args[0];
-        }
-        if (args.length >= 2) {
-            try {
-                port = Integer.parseInt(args[1]);
-            } catch (NumberFormatException e) {
-                System.out.printf("ERROR: Invalid port number \"%s\"", args[1]);
-                System.exit(-1);
-            }
-        }
-
-        Runtime.getRuntime().addShutdownHook(new Thread(Client::disconnect));
-
+    @Override
+    public void run() {
         if (!connect()) {
-            System.out.printf("ERROR: Failed to connect to server at %s:%d", host, port);
-            System.exit(-1);
+            System.out.printf("WARNING: Client failed to connect: %s\n", socket.getInetAddress().getHostAddress());
+            return;
         }
 
-        new Thread(() -> {
-            while (receiveMessage()) ;
-            disconnect();
-        }).start();
-
-        // TODO
-        System.in.read();
+        while (receiveMessage()) ;
         disconnect();
+    }
+
+    /*
+     * Turn – Client chooses square _ for their move
+     *     1-9, with 1=top left, 2=top middle, 3=top right, 4=center left, … 9=bottom right
+     * Does the winner want to play again or not?
+     *     `Y` = yes, `N` = no
+     * Leave/disconnect (can occur mid-game)
+     *     `Q` (or just close socket)
+     */
+    boolean receiveMessage() {
+        try {
+            byte[] bytes = new byte[1];
+            int bytesRead = in.read(bytes);
+            if (bytesRead != 1) {
+                return false;
+            }
+            String message = new String(bytes, charset);
+
+            // TODO
+
+            System.out.printf("WARNING: Received unrecognized message from client: \"%s\"\n", message);
+        } catch (IOException e) {
+            // ignore
+        }
+        return false;
     }
 
     /*
@@ -122,40 +135,12 @@ class Client {
      *     `o` – Game starting, you are O
      *     Indicate for each player if they are `X` or `O`
      */
-    static boolean receiveMessage() {
-        try {
-            byte[] bytes = new byte[100];
-            // TODO: verify how many bytes we will send maximum
-            //       and alter the byte array (buffer) length
-            int bytesRead = in.read(bytes);
-            if (bytesRead == -1) {
-                return false;
-            }
-            String message = new String(bytes, charset);
-
-            // TODO
-
-            System.out.printf("WARNING: Received unrecognized message from server: %s\n", message);
-        } catch (IOException e) {
-            // ignore
-        }
-        return false;
-    }
-
-    /*
-     * Turn – Client chooses square _ for their move
-     *     1-9, with 1=top left, 2=top middle, 3=top right, 4=center left, … 9=bottom right
-     * Does the winner want to play again or not?
-     *     `Y` = yes, `N` = no
-     * Leave/disconnect (can occur mid-game)
-     *     `Q` (or just close socket)
-     */
-    static boolean sendMessage(byte[] bytes) {
+    boolean sendMessage(byte[] bytes) {
         try {
             out.write(bytes);
         } catch (IOException e) {
             if (in != null) {
-                System.out.printf("ERROR: Failed to send message to server: \"%s\"", new String(bytes, charset));
+                System.out.printf("ERROR: Failed to send message to client: \"%s\"\n", new String(bytes, charset));
                 System.exit(-1);
             }
             return false;
