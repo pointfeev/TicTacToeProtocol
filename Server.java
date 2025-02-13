@@ -7,9 +7,9 @@ import java.util.ArrayList;
 
 class Server {
     static ServerSocket serverSocket = null;
-    static ArrayList<ClientThread> clients = new ArrayList<>();
+    static ArrayList<ServerClient> clients = new ArrayList<>();
 
-    static synchronized void shutdown() {
+    static void shutdown() {
         for (int i = clients.size() - 1; i >= 0; i--) {
             clients.get(i).disconnect();
         }
@@ -40,7 +40,7 @@ class Server {
         System.out.printf("Server listening on port %d\n", port);
         while (!serverSocket.isClosed()) {
             try {
-                new ClientThread(serverSocket.accept()).start();
+                new ServerClient(serverSocket.accept()).start();
             } catch (IOException e) {
                 // ignore
             }
@@ -50,18 +50,18 @@ class Server {
     }
 }
 
-class ClientThread extends Thread {
+class ServerClient extends Thread {
     Socket socket;
     InputStream in;
     OutputStream out;
 
     static final Charset charset = StandardCharsets.US_ASCII;
 
-    ClientThread(Socket socket) {
+    ServerClient(Socket socket) {
         this.socket = socket;
     }
 
-    synchronized boolean connect() {
+    boolean connect() {
         try {
             in = socket.getInputStream();
             out = socket.getOutputStream();
@@ -78,11 +78,7 @@ class ClientThread extends Thread {
         return true;
     }
 
-    synchronized void disconnect() {
-        if (Server.clients.remove(this)) {
-            System.out.printf("Client disconnected: %s\n", socket.getInetAddress().getHostAddress());
-        }
-
+    void disconnect() {
         if (in != null) {
             try {
                 in.close();
@@ -91,10 +87,7 @@ class ClientThread extends Thread {
             }
             in = null;
         }
-
         if (out != null) {
-            // TODO: send disconnect message to client?
-
             try {
                 out.close();
             } catch (IOException e) {
@@ -103,14 +96,18 @@ class ClientThread extends Thread {
             out = null;
         }
 
-        if (socket != null) {
-            try {
-                socket.close();
-            } catch (IOException e) {
-                // ignore
-            }
-            socket = null;
+        if (socket == null) {
+            return;
         }
+        try {
+            socket.close();
+        } catch (IOException e) {
+            // ignore
+        }
+        if (Server.clients.remove(this)) {
+            System.out.printf("Client disconnected: %s\n", socket.getInetAddress().getHostAddress());
+        }
+        socket = null;
     }
 
     @Override
@@ -121,7 +118,6 @@ class ClientThread extends Thread {
         }
 
         while (receiveMessage()) ;
-
         disconnect();
     }
 
@@ -133,7 +129,7 @@ class ClientThread extends Thread {
      * Leave/disconnect (can occur mid-game)
      *     `Q` (or just close socket)
      */
-    synchronized boolean receiveMessage() {
+    boolean receiveMessage() {
         try {
             byte[] bytes = new byte[1];
             int bytesRead = in.read(bytes);
@@ -143,10 +139,6 @@ class ClientThread extends Thread {
             String message = new String(bytes, charset);
 
             // TODO
-
-            if (message.equals("Q")) {
-                return false;
-            }
 
             System.out.printf("WARNING: Received unrecognized message from client: \"%s\"\n", message);
         } catch (IOException e) {
@@ -188,7 +180,7 @@ class ClientThread extends Thread {
      *     `o` – Game starting, you are O
      *     Indicate for each player if they are `X` or `O`
      */
-    synchronized boolean sendMessage(byte[] bytes) {
+    boolean sendMessage(byte[] bytes) {
         try {
             out.write(bytes);
         } catch (IOException e) {

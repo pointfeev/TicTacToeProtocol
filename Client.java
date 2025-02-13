@@ -13,7 +13,7 @@ class Client {
 
     static final Charset charset = StandardCharsets.US_ASCII;
 
-    static synchronized boolean connect() {
+    static boolean connect() {
         try {
             socket = new Socket(host, port);
             in = socket.getInputStream();
@@ -27,7 +27,7 @@ class Client {
         return true;
     }
 
-    static synchronized void disconnect() {
+    static void disconnect() {
         if (in != null) {
             try {
                 in.close();
@@ -36,11 +36,7 @@ class Client {
             }
             in = null;
         }
-
         if (out != null) {
-            sendMessage("Q".getBytes(charset));
-            System.out.print("Disconnected from server\n");
-
             try {
                 out.close();
             } catch (IOException e) {
@@ -49,14 +45,16 @@ class Client {
             out = null;
         }
 
-        if (socket != null) {
-            try {
-                socket.close();
-            } catch (IOException e) {
-                // ignore
-            }
-            socket = null;
+        if (socket == null) {
+            return;
         }
+        try {
+            socket.close();
+        } catch (IOException e) {
+            // ignore
+        }
+        System.out.print("Disconnected from server\n");
+        socket = null;
     }
 
     public static void main(String[] args) throws IOException {
@@ -79,8 +77,14 @@ class Client {
             System.exit(-1);
         }
 
+        new Thread(() -> {
+            while (receiveMessage()) ;
+            disconnect();
+        }).start();
+
         // TODO
         System.in.read();
+        disconnect();
     }
 
     /*
@@ -116,10 +120,11 @@ class Client {
      *     `o` – Game starting, you are O
      *     Indicate for each player if they are `X` or `O`
      */
-    static synchronized boolean receiveMessage() {
+    static boolean receiveMessage() {
         try {
             byte[] bytes = new byte[100];
-            // TODO: verify how many bytes we will send and alter the byte array (buffer) length
+            // TODO: verify how many bytes we will send maximum
+            //       and alter the byte array (buffer) length
             int bytesRead = in.read(bytes);
             if (bytesRead == -1) {
                 return false;
@@ -143,7 +148,7 @@ class Client {
      * Leave/disconnect (can occur mid-game)
      *     `Q` (or just close socket)
      */
-    static synchronized boolean sendMessage(byte[] bytes) {
+    static boolean sendMessage(byte[] bytes) {
         try {
             out.write(bytes);
         } catch (IOException e) {
