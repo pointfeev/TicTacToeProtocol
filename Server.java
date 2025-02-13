@@ -107,9 +107,9 @@ class ClientThread extends Thread {
      * Turn – Client chooses square _ for their move
      *     1-9, with 1=top left, 2=top middle, 3=top right, 4=center left, … 9=bottom right
      * Does the winner want to play again or not?
-     *     ‘Y’ = yes, ‘N’ = no
+     *     `Y` = yes, `N` = no
      * Leave/disconnect (can occur mid-game)
-     *     ‘Q’ (or just close socket)
+     *     `Q` (or just close socket)
      */
     boolean receiveMessage() {
         try {
@@ -130,36 +130,36 @@ class ClientThread extends Thread {
 
     /*
      * Current state of the board
-     *     String – each of 9 characters represents one square on the board (‘X’, ‘O’ or ‘ ‘)
-     *         Always sent “square 1”, “square 2”, …, “square 9”
+     *     String – each of 9 characters represents one square on the board (`X`, `O` or ` `)
+     *         Always sent "square 1", "square 2", …, "square 9"
      * Indicate who plays next
-     *     Boolean – ‘1’ = your turn, ‘0’ = other player’s turn
+     *     Boolean – `1` = your turn, `0` = other player`s turn
      * You won/lost/tied
-     *     ‘W’ = win (followed by byte with length of win streak)
-     *     ‘L’ = loss
-     *     ‘T’ = tie
+     *     `W` = win (followed by byte with length of win streak)
+     *     `L` = loss
+     *     `T` = tie
      * Indicate winning streak to winner
      *     Send at end of each game to winner
      *     Number – indicates length of the streak
      *         In binary, one byte of 1..255
      *         Streaks longer than 255 will be reported as 255
      * Winner – Play again?
-     *     Implied by ‘W’ message
+     *     Implied by `W` message
      * Incorrect move
-     *     ‘I’
+     *     `I`
      *     Only sent if move is incorrect
-     *     If correct, message with board and indicating other player’s move
+     *     If correct, message with board and indicating other player`s move
      * How many people before the player in the queue
-     *     ‘Q’ followed by byte with value 0…254
+     *     `Q` followed by byte with value 0…254
      *     255 = lots (255 or more) players ahead of you
      * Waiting for another player to join the game
-     *     ‘w’ (lowercase)
+     *     `w` (lowercase)
      *     Only sent if there is not yet a second player
-     *     IF second player arrives, send “game starting” message
+     *     IF second player arrives, send "game starting" message
      * Game starting
-     *     ‘x’ – Game starting, you are X
-     *     ‘o’ – Game starting, you are O
-     *     Indicate for each player if they are ‘X’ or ‘O’
+     *     `x` – Game starting, you are X
+     *     `o` – Game starting, you are O
+     *     Indicate for each player if they are `X` or `O`
      */
     boolean sendMessage(String message) {
         try {
