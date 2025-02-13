@@ -1,11 +1,13 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.HashSet;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 
 class Server {
     static ServerSocket serverSocket = null;
-    static HashSet<ClientThread> clients = new HashSet<>();
+    static ArrayList<ClientThread> clients = new ArrayList<>();
 
     public static void main(String[] args) throws IOException {
         int port = 9999;
@@ -32,8 +34,10 @@ class Server {
 
 class ClientThread extends Thread {
     Socket socket;
-    DataInputStream in;
-    DataOutputStream out;
+    InputStream in;
+    OutputStream out;
+
+    static final Charset charset = StandardCharsets.US_ASCII;
 
     ClientThread(Socket socket) {
         this.socket = socket;
@@ -41,12 +45,8 @@ class ClientThread extends Thread {
 
     boolean connect() {
         try {
-            InputStream inputStream = socket.getInputStream();
-            in = new DataInputStream(inputStream);
-
-            OutputStream outputStream = socket.getOutputStream();
-            BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(outputStream);
-            out = new DataOutputStream(bufferedOutputStream);
+            in = socket.getInputStream();
+            out = socket.getOutputStream();
         } catch (IOException e) {
             disconnect();
             return false;
@@ -113,7 +113,12 @@ class ClientThread extends Thread {
      */
     boolean receiveMessage() {
         try {
-            String message = in.readUTF();
+            byte[] bytes = new byte[1];
+            int bytesRead = in.read(bytes);
+            if (bytesRead != 1) {
+                return false;
+            }
+            String message = new String(bytes, charset);
 
             // TODO
 
@@ -161,15 +166,12 @@ class ClientThread extends Thread {
      *     `o` – Game starting, you are O
      *     Indicate for each player if they are `X` or `O`
      */
-    boolean sendMessage(String message) {
+    boolean sendMessage(byte[] bytes) {
         try {
-            // TODO
-
-            out.writeUTF(message);
-            out.flush();
+            out.write(bytes);
         } catch (IOException e) {
             if (in != null) {
-                System.out.printf("ERROR: Failed to send message to client: \"%s\"\n", message);
+                System.out.printf("ERROR: Failed to send message to client: \"%s\"\n", new String(bytes, charset));
                 System.exit(-1);
             }
             return false;

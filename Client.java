@@ -1,24 +1,23 @@
 import java.io.*;
 import java.net.Socket;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 class Client {
     static String host = "127.0.0.1";
     static int port = 9999;
 
     static Socket socket;
-    static DataInputStream in;
-    static DataOutputStream out;
+    static InputStream in;
+    static OutputStream out;
+
+    static final Charset charset = StandardCharsets.US_ASCII;
 
     static boolean connect() {
         try {
             socket = new Socket(host, port);
-
-            InputStream inputStream = socket.getInputStream();
-            in = new DataInputStream(inputStream);
-
-            OutputStream outputStream = socket.getOutputStream();
-            BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(outputStream);
-            out = new DataOutputStream(bufferedOutputStream);
+            in = socket.getInputStream();
+            out = socket.getOutputStream();
         } catch (IOException e) {
             disconnect();
             return false;
@@ -39,7 +38,7 @@ class Client {
         }
 
         if (out != null) {
-            sendMessage("Q");
+            sendMessage("Q".getBytes(charset));
             System.out.print("Disconnected from server\n");
 
             try {
@@ -119,7 +118,13 @@ class Client {
      */
     boolean receiveMessage() {
         try {
-            String message = in.readUTF();
+            byte[] bytes = new byte[100];
+            // TODO: verify how many bytes we will send and alter the byte array (buffer) length
+            int bytesRead = in.read(bytes);
+            if (bytesRead == -1) {
+                return false;
+            }
+            String message = new String(bytes, charset);
 
             // TODO
 
@@ -138,15 +143,12 @@ class Client {
      * Leave/disconnect (can occur mid-game)
      *     `Q` (or just close socket)
      */
-    static boolean sendMessage(String message) {
+    static boolean sendMessage(byte[] bytes) {
         try {
-            // TODO
-
-            out.writeUTF(message);
-            out.flush();
+            out.write(bytes);
         } catch (IOException e) {
             if (in != null) {
-                System.out.printf("ERROR: Failed to send message to server: \"%s\"", message);
+                System.out.printf("ERROR: Failed to send message to server: \"%s\"", new String(bytes, charset));
                 System.exit(-1);
             }
             return false;
