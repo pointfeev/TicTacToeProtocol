@@ -5,7 +5,12 @@ import java.net.Socket;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
+enum ClientState {
+    CONNECTING, CONNECTED, DISCONNECTING, DISCONNECTED
+}
+
 class ServerClient extends Thread {
+    ClientState state = ClientState.CONNECTING;
     Socket socket;
     InputStream in;
     OutputStream out;
@@ -17,6 +22,8 @@ class ServerClient extends Thread {
     }
 
     boolean connect() {
+        state = ClientState.CONNECTING;
+
         try {
             in = socket.getInputStream();
             out = socket.getOutputStream();
@@ -29,11 +36,19 @@ class ServerClient extends Thread {
             disconnect();
             return false;
         }
-        System.out.printf("Client connected: %s\n", socket.getInetAddress().getHostAddress());
+        System.out.printf("%s connected: %s\n", getIdentifier(), socket.getInetAddress().getHostAddress());
+
+        if (Server.game.state == GameState.PLAYING) {
+            // TODO: send `Q` to this client, along with a byte containing how many clients ahead in queue (cap at 255 before sending)
+        }
+
+        state = ClientState.CONNECTED;
         return true;
     }
 
     void disconnect() {
+        state = ClientState.DISCONNECTING;
+
         if (in != null) {
             try {
                 in.close();
@@ -59,21 +74,50 @@ class ServerClient extends Thread {
         } catch (IOException e) {
             // ignore
         }
-        if (Server.clients.remove(this)) {
-            System.out.printf("Client disconnected: %s\n", socket.getInetAddress().getHostAddress());
+        int clientIndex = Server.clients.indexOf(this);
+        if (clientIndex != -1) {
+            Server.clients.remove(clientIndex);
+            String identifier = getIdentifier();
+            System.out.printf("%s disconnected: %s\n", identifier, socket.getInetAddress().getHostAddress());
+            switch (identifier) {
+                case "Player X" -> {
+                    Server.game.playerX = null;
+                    Server.game.endGame(Server.game.playerO);
+                }
+                case "Player O" -> {
+                    Server.game.playerO = null;
+                    Server.game.endGame(Server.game.playerX);
+                }
+            }
+
+            if (Server.game.state == GameState.PLAYING) {
+                // TODO: send `Q` to all clients not playing, along with a byte containing how many clients ahead in queue (cap at 255 before sending)
+                //       only send to clients whose queue position changed; use clientIndex from above
+            }
         }
         socket = null;
+
+        state = ClientState.DISCONNECTED;
     }
 
     @Override
     public void run() {
         if (!connect()) {
-            System.out.printf("WARNING: Client failed to connect: %s\n", socket.getInetAddress().getHostAddress());
+            System.out.printf("WARNING: %s failed to connect: %s\n", getIdentifier(), socket.getInetAddress().getHostAddress());
             return;
         }
 
-        while (receiveMessage()) ;
+        while (receiveMessage()) {}
         disconnect();
+    }
+
+    String getIdentifier() {
+        if (Server.game.playerX == this) {
+            return "Player X";
+        } else if (Server.game.playerO == this) {
+            return "Player O";
+        }
+        return "Client";
     }
 
     /*
@@ -93,7 +137,30 @@ class ServerClient extends Thread {
             }
             String message = new String(bytes, charset);
 
-            // TODO
+            try {
+                int square = Integer.parseInt(message);
+                if (square >= 0 && square <= 9) {
+                    Server.game.playTurn(this, square);
+                    return true;
+                }
+            } catch (NumberFormatException e) {
+                // ignore
+            }
+
+            switch (message) {
+                case "Y" -> {
+                    // TODO: for asking the winner if they want to play again
+                    return true;
+                }
+                case "N" -> {
+                    // TODO: for asking the winner if they want to play again
+                    return true;
+                }
+
+                case "Q" -> {
+                    return false;
+                }
+            }
 
             System.out.printf("WARNING: Received unrecognized message from client: \"%s\"\n", message);
         } catch (IOException e) {

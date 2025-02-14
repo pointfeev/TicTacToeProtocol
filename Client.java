@@ -80,7 +80,7 @@ class Client {
         }
 
         new Thread(() -> {
-            while (receiveMessage()) ;
+            while (receiveMessage()) {}
             disconnect();
         }).start();
 
@@ -124,9 +124,7 @@ class Client {
      */
     static boolean receiveMessage() {
         try {
-            byte[] bytes = new byte[100];
-            // TODO: verify how many bytes we will send maximum
-            //       and alter the byte array (buffer) length
+            byte[] bytes = new byte[10];
             int bytesRead = in.read(bytes);
             if (bytesRead == -1) {
                 return false;

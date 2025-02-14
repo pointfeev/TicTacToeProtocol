@@ -4,6 +4,8 @@ import java.util.ArrayList;
 
 class Server {
     static ServerSocket serverSocket = null;
+    static ServerGame game = null;
+
     static ArrayList<ServerClient> clients = new ArrayList<>();
 
     static void shutdown() {
@@ -34,7 +36,8 @@ class Server {
         Runtime.getRuntime().addShutdownHook(new Thread(Server::shutdown));
 
         serverSocket = new ServerSocket(port);
-        System.out.printf("Server listening on port %d\n", port);
+        System.out.printf("Server started on port %d\n", port);
+        game = new ServerGame();
         while (!serverSocket.isClosed()) {
             try {
                 new ServerClient(serverSocket.accept()).start();
@@ -42,7 +45,6 @@ class Server {
                 // ignore
             }
         }
-
         shutdown();
     }
 }
