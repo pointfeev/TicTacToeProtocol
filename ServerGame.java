@@ -1,9 +1,5 @@
 import java.util.Random;
 
-enum GameState {
-    INITIALIZING, WAITING_FOR_PLAYERS, PLAYING
-}
-
 class ServerGame {
     GameState state = GameState.INITIALIZING;
     char[] board = new char[9];

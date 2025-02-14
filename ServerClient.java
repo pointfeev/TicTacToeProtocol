@@ -5,10 +5,6 @@ import java.net.Socket;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
-enum ClientState {
-    CONNECTING, CONNECTED, DISCONNECTING, DISCONNECTED
-}
-
 class ServerClient extends Thread {
     ClientState state = ClientState.CONNECTING;
     Socket socket;

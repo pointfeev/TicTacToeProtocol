@@ -1,0 +1,6 @@
+enum ClientState {
+    CONNECTING,
+    CONNECTED,
+    DISCONNECTING,
+    DISCONNECTED
+}
