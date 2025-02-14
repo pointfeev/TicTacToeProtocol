@@ -205,7 +205,7 @@ class ServerClient extends Thread {
         try {
             out.write(bytes);
         } catch (IOException e) {
-            if (in != null) {
+            if (state != ClientState.DISCONNECTING) {
                 System.out.printf("ERROR: Failed to send message to client: \"%s\"\n", new String(bytes, charset));
                 System.exit(-1);
             }

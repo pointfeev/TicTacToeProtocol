@@ -6,6 +6,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 class Client {
+    static ClientState state = ClientState.CONNECTING;
     static String host = "127.0.0.1";
     static int port = 9999;
     static Socket socket;
@@ -14,6 +15,8 @@ class Client {
     static final Charset charset = StandardCharsets.US_ASCII;
 
     static boolean connect() {
+        state = ClientState.CONNECTING;
+
         try {
             socket = new Socket(host, port);
             in = socket.getInputStream();
@@ -24,10 +27,14 @@ class Client {
         }
 
         System.out.printf("Connected to server at %s:%d\n", socket.getInetAddress().getHostAddress(), socket.getPort());
+
+        state = ClientState.CONNECTED;
         return true;
     }
 
     static void disconnect() {
+        state = ClientState.DISCONNECTING;
+
         if (in != null) {
             try {
                 in.close();
@@ -55,6 +62,8 @@ class Client {
         }
         System.out.print("Disconnected from server\n");
         socket = null;
+
+        state = ClientState.DISCONNECTED;
     }
 
     public static void main(String[] args) throws IOException {
@@ -150,7 +159,7 @@ class Client {
         try {
             out.write(bytes);
         } catch (IOException e) {
-            if (in != null) {
+            if (state != ClientState.DISCONNECTING) {
                 System.out.printf("ERROR: Failed to send message to server: \"%s\"", new String(bytes, charset));
                 System.exit(-1);
             }
