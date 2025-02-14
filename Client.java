@@ -8,11 +8,9 @@ import java.nio.charset.StandardCharsets;
 class Client {
     static String host = "127.0.0.1";
     static int port = 9999;
-
     static Socket socket;
     static InputStream in;
     static OutputStream out;
-
     static final Charset charset = StandardCharsets.US_ASCII;
 
     static boolean connect() {

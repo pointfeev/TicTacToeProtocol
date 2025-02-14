@@ -10,12 +10,10 @@ class ServerGame {
     int turn = 0;
     ServerClient playerX = null;
     ServerClient playerO = null;
-
     Random random = new Random();
 
     ServerGame() {
         random.setSeed(System.currentTimeMillis());
-
         waitForPlayers();
     }
 

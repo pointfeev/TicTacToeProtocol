@@ -5,7 +5,6 @@ import java.util.ArrayList;
 class Server {
     static ServerSocket serverSocket = null;
     static ServerGame game = null;
-
     static ArrayList<ServerClient> clients = new ArrayList<>();
 
     static void shutdown() {

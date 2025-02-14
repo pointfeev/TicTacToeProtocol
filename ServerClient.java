@@ -14,7 +14,6 @@ class ServerClient extends Thread {
     Socket socket;
     InputStream in;
     OutputStream out;
-
     static final Charset charset = StandardCharsets.US_ASCII;
 
     ServerClient(Socket socket) {
