@@ -10,8 +10,12 @@ class ServerClient extends Thread {
     InputStream in;
     OutputStream out;
 
+    int clientId;
+    static int lastClientId = 0;
+
     ServerClient(Socket socket) {
         this.socket = socket;
+        clientId = ++lastClientId;
     }
 
     boolean connect() {
@@ -104,14 +108,17 @@ class ServerClient extends Thread {
     }
 
     String getIdentifier() {
-        if (Server.game.lastWinner == this) {
+        if (Server.game.state == GameState.WAITING_ON_WINNER && Server.game.lastWinner == this) {
             return "Winner";
-        } else if (Server.game.playerX == this) {
-            return "Player X";
-        } else if (Server.game.playerO == this) {
-            return "Player O";
         }
-        return "Client";
+        if (Server.game.state == GameState.PLAYING) {
+            if (Server.game.playerX == this) {
+                return "Player X";
+            } else if (Server.game.playerO == this) {
+                return "Player O";
+            }
+        }
+        return "Client #" + clientId;
     }
 
     /*
@@ -146,7 +153,7 @@ class ServerClient extends Thread {
                 return true;
             }
 
-            System.out.printf("WARNING: Received unrecognized message from client: %s\n", Arrays.toString(bytes));
+            System.out.printf("WARNING: Received unrecognized message from %s: %s\n", getIdentifier(), Arrays.toString(bytes));
         } catch (IOException e) {
             // ignore
         }
@@ -191,7 +198,7 @@ class ServerClient extends Thread {
             out.write(bytes);
         } catch (IOException e) {
             if (state != ClientState.DISCONNECTING) {
-                System.out.printf("ERROR: Failed to send message to client: %s\n", Arrays.toString(bytes));
+                System.out.printf("ERROR: Failed to send message to %s: %s\n", getIdentifier(), Arrays.toString(bytes));
                 System.exit(-1);
             }
             return false;
