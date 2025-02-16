@@ -122,8 +122,12 @@ class ServerGame {
             return;
         }
         board[square] = turnPlayer == playerX ? 'X' : 'O';
-        turn++;
 
+        // TODO: determine if the move caused a win or a tie
+        //          for efficiency, we can likely get away with only checking the
+        //          changed square's row, column and diagonals instead of the whole board
+
+        turn++;
         // TODO: send board state and indicator of who plays next to game players
     }
 
