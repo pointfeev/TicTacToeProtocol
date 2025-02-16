@@ -1,4 +1,3 @@
-@echo off
 javac Client.java -d out/client
 cd out/client
-java Client %*
+java Client "$@"
