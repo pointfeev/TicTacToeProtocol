@@ -134,6 +134,10 @@ class ServerClient extends Thread {
             }
             String message = new String(bytes, charset);
 
+            if (message.equals("Q")) {
+                return false;
+            }
+
             try {
                 int square = Integer.parseInt(message);
                 if (square >= 0 && square <= 9) {
@@ -148,10 +152,6 @@ class ServerClient extends Thread {
             if (playAgain || message.equals("N")) {
                 Server.game.restartGame(this, playAgain);
                 return true;
-            }
-
-            if (message.equals("Q")) {
-                return false;
             }
 
             System.out.printf("WARNING: Received unrecognized message from client: \"%s\"\n", message);
