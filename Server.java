@@ -8,10 +8,6 @@ class Server {
     static ArrayList<ServerClient> clients = new ArrayList<>();
 
     static void shutdown() {
-        for (int i = clients.size() - 1; i >= 0; i--) {
-            clients.get(i).disconnect();
-        }
-
         if (serverSocket != null) {
             try {
                 serverSocket.close();
