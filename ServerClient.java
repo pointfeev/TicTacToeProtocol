@@ -72,22 +72,22 @@ class ServerClient extends Thread {
         int clientIndex = Server.clients.indexOf(this);
         if (clientIndex != -1) {
             Server.clients.remove(clientIndex);
+
             String identifier = getIdentifier();
             System.out.printf("%s disconnected: %s\n", identifier, socket.getInetAddress().getHostAddress());
-            switch (identifier) {
-                case "Player X" -> {
-                    Server.game.playerX = null;
-                    Server.game.endGame(Server.game.playerO);
-                }
-                case "Player O" -> {
-                    Server.game.playerO = null;
-                    Server.game.endGame(Server.game.playerX);
-                }
-            }
 
-            if (Server.game.state == GameState.PLAYING) {
-                // TODO: send `Q` to all clients not playing, along with a byte containing how many clients ahead in queue (cap at 255 before sending)
-                //       only send to clients whose queue position changed; use clientIndex from above
+            switch (Server.game.state) {
+                case PLAYING -> {
+                    switch (identifier) {
+                        case "Player X" -> Server.game.endGame(Server.game.playerO);
+                        case "Player O" -> Server.game.endGame(Server.game.playerX);
+                    }
+
+                    // TODO: send `Q` to all clients not playing, along with a byte containing how many clients ahead in queue (cap at 255 before sending)
+                    //       only send to clients whose queue position changed; use clientIndex from above
+                    //       we may only want to send this if the game wasn't just ended? needs review
+                }
+                case WAITING_ON_WINNER -> Server.game.restartGame(this, false);
             }
         }
         socket = null;
@@ -107,7 +107,9 @@ class ServerClient extends Thread {
     }
 
     String getIdentifier() {
-        if (Server.game.playerX == this) {
+        if (Server.game.lastWinner == this) {
+            return "Winner";
+        } else if (Server.game.playerX == this) {
             return "Player X";
         } else if (Server.game.playerO == this) {
             return "Player O";
@@ -142,19 +144,14 @@ class ServerClient extends Thread {
                 // ignore
             }
 
-            switch (message) {
-                case "Y" -> {
-                    // TODO: for asking the winner if they want to play again
-                    return true;
-                }
-                case "N" -> {
-                    // TODO: for asking the winner if they want to play again
-                    return true;
-                }
+            boolean playAgain = message.equals("Y");
+            if (playAgain || message.equals("N")) {
+                Server.game.restartGame(this, playAgain);
+                return true;
+            }
 
-                case "Q" -> {
-                    return false;
-                }
+            if (message.equals("Q")) {
+                return false;
             }
 
             System.out.printf("WARNING: Received unrecognized message from client: \"%s\"\n", message);

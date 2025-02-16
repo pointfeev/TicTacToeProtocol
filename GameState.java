@@ -1,5 +1,6 @@
 public enum GameState {
     INITIALIZING,
     WAITING_FOR_PLAYERS,
-    PLAYING
+    PLAYING,
+    WAITING_ON_WINNER
 }

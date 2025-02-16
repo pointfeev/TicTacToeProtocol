@@ -7,6 +7,8 @@ class ServerGame {
     ServerClient playerX = null;
     ServerClient playerO = null;
     Random random = new Random();
+    int streak = 0;
+    ServerClient lastWinner = null;
 
     ServerGame() {
         random.setSeed(System.currentTimeMillis());
@@ -17,6 +19,9 @@ class ServerGame {
         if (state == GameState.WAITING_FOR_PLAYERS) {
             return;
         }
+
+        playerX = null;
+        playerO = null;
 
         state = GameState.WAITING_FOR_PLAYERS;
         System.out.print("Waiting for players...\n");
@@ -69,7 +74,7 @@ class ServerGame {
         turn = 0;
 
         state = GameState.PLAYING;
-        System.out.print("Game started\n");
+        System.out.print("Game started!\n");
 
         // TODO: send `x`, `o` messages to respective clients
 
@@ -105,23 +110,65 @@ class ServerGame {
             return;
         }
 
+        if (winner != lastWinner) {
+            streak = 0;
+        }
+        lastWinner = winner;
+
         String output = "Game over, ";
-        if (winner == playerX) {
-            output += "X wins!";
-        } else if (winner == playerO) {
-            output += "O wins!";
+        if (winner != null) {
+            streak++;
+
+            if (winner == playerX) {
+                output += "X wins!";
+                if (Server.clients.remove(playerO)) {
+                    Server.clients.add(playerO);
+                }
+            } else {
+                output += "O wins!";
+                if (Server.clients.remove(playerX)) {
+                    Server.clients.add(playerX);
+                }
+            }
+            if (streak > 1) {
+                output += " This player has won " + streak + " games in a row!";
+            }
+            System.out.printf("%s\n", output);
+
+            state = GameState.WAITING_ON_WINNER;
+            System.out.print("Waiting on winner to respond...\n");
+
+            // TODO: send `W`, `L` messages to respective clients
+            //       also send byte to indicate winning streak to winner (cap at 255 before sending)
+
         } else {
             output += "it's a tie!";
+            System.out.printf("%s\n", output);
+
+            // TODO: send `T` messages to respective clients
+
+            waitForPlayers();
         }
-        System.out.printf("%s\n", output);
+    }
 
-        // TODO: send `W`, `L`, `T` messages to respective clients and shift the loser to the end of the queue (client array)
-        //       also send byte to indicate winning streak to winner (cap at 255 before sending; we also need to figure out how/where to store that value)
-        //       we will probably want to enter a WAITING_ON_WINNER state or something like that here to ask if they want to play again
-        //       make sure we shift the winner to the end of the queue (client array) too if they choose not to play again
+    void restartGame(ServerClient player, boolean winnerPlaysAgain) {
+        if (state != GameState.WAITING_ON_WINNER) {
+            return;
+        }
 
-        playerX = null;
-        playerO = null;
+        if (player != lastWinner) {
+            return;
+        }
+
+        if (!winnerPlaysAgain) {
+            if (Server.clients.remove(lastWinner)) {
+                Server.clients.add(lastWinner);
+                System.out.print("Winner will not play again.\n");
+            }
+        } else {
+            System.out.print("Winner will play again!\n");
+        }
+
         waitForPlayers();
     }
 }
