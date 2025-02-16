@@ -34,7 +34,7 @@ class Server {
             try {
                 port = Integer.parseInt(args[0]);
             } catch (NumberFormatException e) {
-                System.out.printf("ERROR: Invalid port number \"%s\"", args[0]);
+                System.out.printf("ERROR: Invalid port number \"%s\"\n", args[0]);
                 System.exit(-1);
             }
         }

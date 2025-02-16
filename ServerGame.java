@@ -51,7 +51,7 @@ class ServerGame {
             }
 
             if (player2 == null || player2.state != ClientState.CONNECTED) {
-                // TODO: send `w` to player1
+                player1.sendMessage("w".getBytes(ServerClient.charset));
                 return false;
             }
         }

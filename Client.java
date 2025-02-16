@@ -59,7 +59,6 @@ class Client {
             // ignore
         }
 
-        clear();
         System.out.print("Disconnected from server\n");
 
         socket = null;
@@ -72,7 +71,7 @@ class Client {
         // System.out.print("\033\143");
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         clear();
 
         if (args.length >= 1) {
@@ -82,28 +81,21 @@ class Client {
             try {
                 port = Integer.parseInt(args[1]);
             } catch (NumberFormatException e) {
-                System.out.printf("ERROR: Invalid port number \"%s\"", args[1]);
+                System.out.printf("ERROR: Invalid port number \"%s\"\n", args[1]);
                 System.exit(-1);
             }
         }
 
         Runtime.getRuntime().addShutdownHook(new Thread(Client::disconnect));
 
-        System.out.printf("Connecting to server at %s:%d...", host, port);
+        System.out.printf("Connecting to server at %s:%d...\n", host, port);
         if (!connect()) {
-            System.out.print("\nERROR: Failed to connect to server\n");
+            System.out.print("ERROR: Failed to connect to server\n");
             System.exit(-1);
         }
 
-        new Thread(() -> {
-            while (receiveMessage()) {}
-            disconnect();
-        }).start();
-
-        // TODO
-        clear();
-        System.out.print("Connected to server");
-        System.in.read();
+        System.out.print("Connected to server\n");
+        while (receiveMessage()) {}
         disconnect();
     }
 
@@ -147,11 +139,17 @@ class Client {
             if (bytesRead == -1) {
                 return false;
             }
-            String message = new String(bytes, charset);
+            String message = new String(bytes, 0, bytesRead, charset);
+
+            if (message.equals("w")) {
+                clear();
+                System.out.print("Waiting for another player...\n");
+                return true;
+            }
 
             // TODO
 
-            System.out.printf("WARNING: Received unrecognized message from server: %s\n", message);
+            System.out.printf("ERROR: Received unrecognized message from server: \"%s\"\n", message);
         } catch (IOException e) {
             // ignore
         }
@@ -171,7 +169,7 @@ class Client {
             out.write(bytes);
         } catch (IOException e) {
             if (state != ClientState.DISCONNECTING) {
-                System.out.printf("ERROR: Failed to send message to server: \"%s\"", new String(bytes, charset));
+                System.out.printf("ERROR: Failed to send message to server: \"%s\"\n", new String(bytes, charset));
                 System.exit(-1);
             }
             return false;
