@@ -153,6 +153,42 @@ class Client {
                 System.out.printf("Game starting, you will be %c...\n", role);
                 return true;
             }
+
+            boolean win = bytes[0] == 'W';
+            boolean lose = bytes[0] == 'L';
+            boolean tie = bytes[0] == 'T';
+            if (win || lose || tie) {
+                String output = "Game over, ";
+                if (win) {
+                    output += "you win!";
+                    int streak = Byte.toUnsignedInt(bytes[1]);
+                    if (streak > 1) {
+                        output += " You have won " + streak + " games in a row!";
+                    }
+                } else if (lose) {
+                    output += "you lose!";
+                } else {
+                    output += "it's a tie!";
+                }
+                System.out.print(output + '\n');
+
+                if (win) {
+                    while (true) {
+                        System.out.print("Do you want to play again (Y/N)? ");
+                        int choiceByte = System.in.read();
+                        System.in.read(new byte[System.in.available()]); // skip the rest of the bytes
+                        char choice = Character.toUpperCase((char) choiceByte);
+                        if (choice == 'Y' || choice == 'N') {
+                            sendMessage(new byte[]{(byte) choice});
+                            break;
+                        }
+                    }
+                }
+
+                // TODO: see if we need to handle lose or tie any further here
+                return true;
+            }
+
             // TODO
 
             System.out.printf("ERROR: Received unrecognized message from server: %s\n", Arrays.toString(bytes));

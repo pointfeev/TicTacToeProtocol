@@ -139,14 +139,17 @@ class ServerGame {
             state = GameState.WAITING_ON_WINNER;
             System.out.print("Waiting on winner to respond...\n");
 
-            // TODO: send `W`, `L` messages to respective clients
-            //       also send byte to indicate winning streak to winner (cap at 255 before sending)
-
+            winner.sendMessage(new byte[]{'W', (byte) streak});
+            ServerClient loser = winner == playerX ? playerO : playerX;
+            if (loser.state == ClientState.CONNECTED) {
+                loser.sendMessage(new byte[]{'L'});
+            }
         } else {
             output += "it's a tie!";
             System.out.printf("%s\n", output);
 
-            // TODO: send `T` messages to respective clients
+            playerX.sendMessage(new byte[]{'T'});
+            playerO.sendMessage(new byte[]{'T'});
 
             waitForPlayers();
         }
