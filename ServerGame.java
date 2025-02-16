@@ -68,6 +68,9 @@ class ServerGame {
     }
 
     void startGame() {
+        playerX.sendMessage("x".getBytes(ServerClient.charset));
+        playerO.sendMessage("o".getBytes(ServerClient.charset));
+
         for (int square = 0; square < 9; square++) {
             board[square] = ' ';
         }
@@ -75,8 +78,6 @@ class ServerGame {
 
         state = GameState.PLAYING;
         System.out.print("Game started!\n");
-
-        // TODO: send `x`, `o` messages to respective clients
 
         // TODO: send board state and indicator of who plays next to game players
     }

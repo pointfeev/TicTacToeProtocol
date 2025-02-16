@@ -6,13 +6,16 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 class Client {
-    static ClientState state = ClientState.CONNECTING;
     static String host = "127.0.0.1";
     static int port = 9999;
+
+    static ClientState state = ClientState.CONNECTING;
     static Socket socket;
     static InputStream in;
     static OutputStream out;
     static final Charset charset = StandardCharsets.US_ASCII;
+
+    static char role = ' ';
 
     static boolean connect() {
         state = ClientState.CONNECTING;
@@ -147,6 +150,13 @@ class Client {
                 return true;
             }
 
+            if (message.equals("x") || message.equals("o")) {
+                role = message.toUpperCase().charAt(0);
+
+                clear();
+                System.out.printf("Game starting, you will be %c...\n", role);
+                return true;
+            }
             // TODO
 
             System.out.printf("ERROR: Received unrecognized message from server: \"%s\"\n", message);
