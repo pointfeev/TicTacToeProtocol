@@ -21,7 +21,14 @@ class Server {
         }
     }
 
+    static void clear() {
+        System.out.print("\033[H\033[2J\033[3J");
+        // System.out.print("\033\143");
+    }
+
     public static void main(String[] args) throws IOException {
+        clear();
+
         int port = 9999;
         if (args.length >= 1) {
             try {

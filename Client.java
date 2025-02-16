@@ -26,8 +26,6 @@ class Client {
             return false;
         }
 
-        System.out.printf("Connected to server at %s:%d\n", socket.getInetAddress().getHostAddress(), socket.getPort());
-
         state = ClientState.CONNECTED;
         return true;
     }
@@ -60,13 +58,23 @@ class Client {
         } catch (IOException e) {
             // ignore
         }
+
+        clear();
         System.out.print("Disconnected from server\n");
+
         socket = null;
 
         state = ClientState.DISCONNECTED;
     }
 
+    static void clear() {
+        System.out.print("\033[H\033[2J\033[3J");
+        // System.out.print("\033\143");
+    }
+
     public static void main(String[] args) throws IOException {
+        clear();
+
         if (args.length >= 1) {
             host = args[0];
         }
@@ -81,8 +89,9 @@ class Client {
 
         Runtime.getRuntime().addShutdownHook(new Thread(Client::disconnect));
 
+        System.out.printf("Connecting to server at %s:%d...", host, port);
         if (!connect()) {
-            System.out.printf("ERROR: Failed to connect to server at %s:%d", host, port);
+            System.out.print("\nERROR: Failed to connect to server\n");
             System.exit(-1);
         }
 
@@ -92,6 +101,8 @@ class Client {
         }).start();
 
         // TODO
+        clear();
+        System.out.print("Connected to server");
         System.in.read();
         disconnect();
     }
