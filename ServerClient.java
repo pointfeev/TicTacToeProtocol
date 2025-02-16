@@ -2,15 +2,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 class ServerClient extends Thread {
     ClientState state = ClientState.CONNECTING;
     Socket socket;
     InputStream in;
     OutputStream out;
-    static final Charset charset = StandardCharsets.US_ASCII;
 
     ServerClient(Socket socket) {
         this.socket = socket;
@@ -132,29 +130,24 @@ class ServerClient extends Thread {
             if (bytesRead != 1) {
                 return false;
             }
-            String message = new String(bytes, charset);
 
-            if (message.equals("Q")) {
+            if (bytes[0] == 'Q') {
                 return false;
             }
 
-            try {
-                int square = Integer.parseInt(message);
-                if (square >= 0 && square <= 9) {
-                    Server.game.playTurn(this, square);
-                    return true;
-                }
-            } catch (NumberFormatException e) {
-                // ignore
+            int square = Byte.toUnsignedInt(bytes[0]);
+            if (square <= 9) {
+                Server.game.playTurn(this, square);
+                return true;
             }
 
-            boolean playAgain = message.equals("Y");
-            if (playAgain || message.equals("N")) {
+            boolean playAgain = bytes[0] == 'Y';
+            if (playAgain || bytes[0] == 'N') {
                 Server.game.restartGame(this, playAgain);
                 return true;
             }
 
-            System.out.printf("WARNING: Received unrecognized message from client: \"%s\"\n", message);
+            System.out.printf("WARNING: Received unrecognized message from client: %s\n", Arrays.toString(bytes));
         } catch (IOException e) {
             // ignore
         }
@@ -199,7 +192,7 @@ class ServerClient extends Thread {
             out.write(bytes);
         } catch (IOException e) {
             if (state != ClientState.DISCONNECTING) {
-                System.out.printf("ERROR: Failed to send message to client: \"%s\"\n", new String(bytes, charset));
+                System.out.printf("ERROR: Failed to send message to client: %s\n", Arrays.toString(bytes));
                 System.exit(-1);
             }
             return false;

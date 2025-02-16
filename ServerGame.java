@@ -51,7 +51,7 @@ class ServerGame {
             }
 
             if (player2 == null || player2.state != ClientState.CONNECTED) {
-                player1.sendMessage("w".getBytes(ServerClient.charset));
+                player1.sendMessage(new byte[]{'w'});
                 return false;
             }
         }
@@ -68,8 +68,8 @@ class ServerGame {
     }
 
     void startGame() {
-        playerX.sendMessage("x".getBytes(ServerClient.charset));
-        playerO.sendMessage("o".getBytes(ServerClient.charset));
+        playerX.sendMessage(new byte[]{'x'});
+        playerO.sendMessage(new byte[]{'o'});
 
         for (int square = 0; square < 9; square++) {
             board[square] = ' ';

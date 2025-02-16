@@ -2,8 +2,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 class Client {
     static String host = "127.0.0.1";
@@ -13,7 +12,6 @@ class Client {
     static Socket socket;
     static InputStream in;
     static OutputStream out;
-    static final Charset charset = StandardCharsets.US_ASCII;
 
     static char role = ' ';
 
@@ -137,29 +135,27 @@ class Client {
      */
     static boolean receiveMessage() {
         try {
-            byte[] bytes = new byte[10];
+            byte[] bytes = new byte[2];
             int bytesRead = in.read(bytes);
             if (bytesRead == -1) {
                 return false;
             }
-            String message = new String(bytes, 0, bytesRead, charset);
 
-            if (message.equals("w")) {
+            if (bytes[0] == 'w') {
                 clear();
                 System.out.print("Waiting for another player...\n");
                 return true;
             }
 
-            if (message.equals("x") || message.equals("o")) {
-                role = message.toUpperCase().charAt(0);
-
+            if (bytes[0] == 'x' || bytes[0] == 'o') {
+                role = Character.toUpperCase((char) bytes[0]);
                 clear();
                 System.out.printf("Game starting, you will be %c...\n", role);
                 return true;
             }
             // TODO
 
-            System.out.printf("ERROR: Received unrecognized message from server: \"%s\"\n", message);
+            System.out.printf("ERROR: Received unrecognized message from server: %s\n", Arrays.toString(bytes));
         } catch (IOException e) {
             // ignore
         }
@@ -179,7 +175,7 @@ class Client {
             out.write(bytes);
         } catch (IOException e) {
             if (state != ClientState.DISCONNECTING) {
-                System.out.printf("ERROR: Failed to send message to server: \"%s\"\n", new String(bytes, charset));
+                System.out.printf("ERROR: Failed to send message to server: %s\n", Arrays.toString(bytes));
                 System.exit(-1);
             }
             return false;
