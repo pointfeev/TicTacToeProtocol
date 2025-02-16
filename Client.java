@@ -154,6 +154,18 @@ class Client {
                 return true;
             }
 
+            if (bytes[0] == 'Q') {
+                int ahead = Byte.toUnsignedInt(bytes[1]);
+                String output = "You are in a queue to play. ";
+                if (ahead == 0) {
+                    output += "You are next in line.";
+                } else {
+                    output += "There " + (ahead == 1 ? "is 1 client" : "are " + ahead + " clients") + " ahead of you.";
+                }
+                System.out.print(output + '\n');
+                return true;
+            }
+
             boolean win = bytes[0] == 'W';
             boolean lose = bytes[0] == 'L';
             if (win || lose || bytes[0] == 'T') {
@@ -187,8 +199,6 @@ class Client {
                 }
                 return true;
             }
-
-            // TODO
 
             System.out.printf("ERROR: Received unrecognized message from server: %s\n", Arrays.toString(bytes));
         } catch (IOException e) {

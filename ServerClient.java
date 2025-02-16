@@ -35,9 +35,7 @@ class ServerClient extends Thread {
         }
         System.out.printf("%s connected: %s\n", getIdentifier(), socket.getInetAddress().getHostAddress());
 
-        if (Server.game.state == GameState.PLAYING) {
-            // TODO: send `Q` to this client, along with a byte containing how many clients ahead in queue (cap at 255 before sending)
-        }
+        sendMessage(new byte[]{'Q', (byte) (Server.clients.size() - 1 - Server.game.getPlayerCount())});
 
         state = ClientState.CONNECTED;
         return true;
@@ -79,16 +77,23 @@ class ServerClient extends Thread {
             switch (Server.game.state) {
                 case PLAYING -> {
                     if (Server.game.playerX == this) {
+                        Server.game.playerX = null;
                         Server.game.endGame(Server.game.playerO);
                     } else if (Server.game.playerO == this) {
+                        Server.game.playerO = null;
                         Server.game.endGame(Server.game.playerX);
+                    } else {
+                        Server.game.sendQueueUpdates(clientIndex);
                     }
-
-                    // TODO: send `Q` to all clients not playing, along with a byte containing how many clients ahead in queue (cap at 255 before sending)
-                    //       only send to clients whose queue position changed; use clientIndex from above
-                    //       we may only want to send this if the game wasn't just ended? needs review
                 }
-                case WAITING_ON_WINNER -> Server.game.restartGame(this, false);
+                case WAITING_ON_WINNER -> {
+                    if (Server.game.lastWinner == this) {
+                        Server.game.restartGame(this, false);
+                        Server.game.lastWinner = null;
+                    } else {
+                        Server.game.sendQueueUpdates(clientIndex);
+                    }
+                }
             }
         }
         socket = null;
@@ -99,7 +104,8 @@ class ServerClient extends Thread {
     @Override
     public void run() {
         if (!connect()) {
-            System.out.printf("WARNING: %s failed to connect: %s\n", getIdentifier(), socket.getInetAddress().getHostAddress());
+            System.out.printf("WARNING: %s failed to connect: %s\n", getIdentifier(),
+                    socket.getInetAddress().getHostAddress());
             return;
         }
 
@@ -153,7 +159,8 @@ class ServerClient extends Thread {
                 return true;
             }
 
-            System.out.printf("WARNING: Received unrecognized message from %s: %s\n", getIdentifier(), Arrays.toString(bytes));
+            System.out.printf("WARNING: Received unrecognized message from %s: %s\n", getIdentifier(),
+                    Arrays.toString(bytes));
         } catch (IOException e) {
             // ignore
         }

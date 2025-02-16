@@ -67,9 +67,30 @@ class ServerGame {
         return true;
     }
 
+    int getPlayerCount() {
+        int players = 2;
+        if (playerX == null) {
+            players--;
+        }
+        if (playerO == null) {
+            players--;
+        }
+        return players;
+    }
+
+    void sendQueueUpdates(int skipClients) {
+        int players = getPlayerCount();
+        for (int index = Server.clients.size() - 1; index >= skipClients; index--) {
+            ServerClient client = Server.clients.get(index);
+            client.sendMessage(new byte[]{'Q', (byte) (index - players)});
+        }
+    }
+
     void startGame() {
         playerX.sendMessage(new byte[]{'x'});
         playerO.sendMessage(new byte[]{'o'});
+
+        sendQueueUpdates(2);
 
         for (int square = 0; square < 9; square++) {
             board[square] = ' ';
@@ -141,7 +162,7 @@ class ServerGame {
 
             winner.sendMessage(new byte[]{'W', (byte) streak});
             ServerClient loser = winner == playerX ? playerO : playerX;
-            if (loser.state == ClientState.CONNECTED) {
+            if (loser != null) {
                 loser.sendMessage(new byte[]{'L'});
             }
         } else {
