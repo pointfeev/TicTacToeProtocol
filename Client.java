@@ -156,8 +156,7 @@ class Client {
 
             boolean win = bytes[0] == 'W';
             boolean lose = bytes[0] == 'L';
-            boolean tie = bytes[0] == 'T';
-            if (win || lose || tie) {
+            if (win || lose || bytes[0] == 'T') {
                 String output = "Game over, ";
                 if (win) {
                     output += "you win!";
