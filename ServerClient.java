@@ -70,15 +70,14 @@ class ServerClient extends Thread {
         int clientIndex = Server.clients.indexOf(this);
         if (clientIndex != -1) {
             Server.clients.remove(clientIndex);
-
-            String identifier = getIdentifier();
-            System.out.printf("%s disconnected: %s\n", identifier, socket.getInetAddress().getHostAddress());
+            System.out.printf("%s disconnected: %s\n", getIdentifier(), socket.getInetAddress().getHostAddress());
 
             switch (Server.game.state) {
                 case PLAYING -> {
-                    switch (identifier) {
-                        case "Player X" -> Server.game.endGame(Server.game.playerO);
-                        case "Player O" -> Server.game.endGame(Server.game.playerX);
+                    if (Server.game.playerX == this) {
+                        Server.game.endGame(Server.game.playerO);
+                    } else if (Server.game.playerO == this) {
+                        Server.game.endGame(Server.game.playerX);
                     }
 
                     // TODO: send `Q` to all clients not playing, along with a byte containing how many clients ahead in queue (cap at 255 before sending)
