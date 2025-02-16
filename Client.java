@@ -182,9 +182,9 @@ class Client {
                             break;
                         }
                     }
+                } else {
+                    // TODO: see if we need to handle lose or tie any further here
                 }
-
-                // TODO: see if we need to handle lose or tie any further here
                 return true;
             }
 
