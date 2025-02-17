@@ -49,7 +49,7 @@ class ClientGame {
             Client.getInput("What square do you want to play (1-9)? ",
                     () -> Client.state == ClientState.CONNECTED && state == GameState.PLAYING, inputByte -> {
                 if (inputByte >= 49 && inputByte <= 57) { // decimal values for ASCII number characters 1-9
-                    Client.sendMessage(new byte[]{inputByte});
+                    Client.sendMessage(new byte[]{(byte) (inputByte - 48)}); // subtract 48 to convert to integer
                     return true;
                 }
                 return false;

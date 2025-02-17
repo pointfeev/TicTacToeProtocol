@@ -106,12 +106,8 @@ class Server {
      *     `Q` (or just close socket)
      */
     synchronized static boolean receiveMessage(ServerClient client, int nextByte) {
-        if (nextByte == 'Q') {
-            return false;
-        }
-
-        if (nextByte >= 49 && nextByte <= 57) { // decimal values for ASCII number characters 1-9
-            Server.game.playTurn(client, nextByte - 49); // subtract 49 to get a board square index (0-8)
+        if (nextByte >= 1 && nextByte <= 9) {
+            Server.game.playTurn(client, nextByte - 1); // subtract 1 to convert to array index
             return true;
         }
 
@@ -119,6 +115,10 @@ class Server {
         if (playAgain || nextByte == 'N') {
             Server.game.restartGame(client, playAgain);
             return true;
+        }
+
+        if (nextByte == 'Q') {
+            return false;
         }
 
         System.out.printf("WARNING: Received unrecognized byte from %s: %s\n", client.getIdentifier(), nextByte);

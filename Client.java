@@ -123,8 +123,8 @@ class Client {
         inputThread = new Thread(() -> {
             try {
                 while (condition.call()) {
-                    System.out.print(prompt);
                     System.in.read(new byte[System.in.available()]); // skip existing bytes
+                    System.out.print(prompt);
                     while (condition.call() && System.in.available() < 1) {
                         Thread.sleep(100);
                     }
@@ -221,8 +221,8 @@ class Client {
                 return true;
             }
 
-            boolean yourTurn = nextByte == '1';
-            if (yourTurn || nextByte == '0') {
+            boolean yourTurn = nextByte == 1;
+            if (yourTurn || nextByte == 0) {
                 game.nextTurn(yourTurn);
                 return true;
             }
@@ -240,9 +240,9 @@ class Client {
                 return true;
             }
 
-            boolean lose = nextByte == 'L';
-            if (lose || nextByte == 'T') {
-                game.gameLost(!lose);
+            boolean tie = nextByte == 'T';
+            if (tie || nextByte == 'L') {
+                game.gameLost(tie);
                 return true;
             }
 

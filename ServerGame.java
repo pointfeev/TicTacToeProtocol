@@ -113,15 +113,15 @@ class ServerGame {
         ServerClient otherPlayer = turnPlayer == playerX ? playerO : playerX;
 
         byte[] turnPlayerBytes = new byte[11];
-        turnPlayerBytes[0] = (byte) 'x';
+        turnPlayerBytes[0] = 'x';
         populateBoardBytes(turnPlayerBytes, 1);
-        turnPlayerBytes[10] = (byte) '1';
+        turnPlayerBytes[10] = 1;
         turnPlayer.sendMessage(turnPlayerBytes);
 
         byte[] otherPlayerBytes = new byte[11];
-        otherPlayerBytes[0] = (byte) 'o';
+        otherPlayerBytes[0] = 'o';
         populateBoardBytes(otherPlayerBytes, 1);
-        otherPlayerBytes[10] = (byte) '0';
+        otherPlayerBytes[10] = 0;
         otherPlayer.sendMessage(otherPlayerBytes);
     }
 
@@ -212,12 +212,12 @@ class ServerGame {
 
         byte[] turnPlayerBytes = new byte[10];
         populateBoardBytes(turnPlayerBytes, 0);
-        turnPlayerBytes[9] = (byte) '0';
+        turnPlayerBytes[9] = 0;
         turnPlayer.sendMessage(turnPlayerBytes);
 
         byte[] otherPlayerBytes = new byte[10];
         populateBoardBytes(otherPlayerBytes, 0);
-        otherPlayerBytes[9] = (byte) '1';
+        otherPlayerBytes[9] = 1;
         otherPlayer.sendMessage(otherPlayerBytes);
     }
 
