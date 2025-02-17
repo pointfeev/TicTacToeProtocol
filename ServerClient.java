@@ -35,7 +35,9 @@ class ServerClient extends Thread {
         }
         System.out.printf("%s connected: %s\n", getIdentifier(), socket.getInetAddress().getHostAddress());
 
-        sendMessage(new byte[]{'Q', (byte) (Server.clients.size() - 1 - Server.game.getPlayerCount())});
+        if (Server.game.state == GameState.PLAYING || Server.game.state == GameState.WAITING_ON_WINNER) {
+            sendMessage(new byte[]{'Q', (byte) (Server.clients.size() - 1 - Server.game.getPlayerCount())});
+        }
 
         state = ClientState.CONNECTED;
         return true;
