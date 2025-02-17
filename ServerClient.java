@@ -150,6 +150,7 @@ class ServerClient extends Thread {
             }
 
             int square = Byte.toUnsignedInt(bytes[0]);
+            // TODO: figure out how to check if it's characters 1-9
             if (square <= 9) {
                 Server.game.playTurn(this, square);
                 return true;

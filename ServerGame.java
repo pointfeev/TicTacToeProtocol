@@ -100,11 +100,22 @@ class ServerGame {
         state = GameState.PLAYING;
         System.out.print("Game started!\n");
 
-        // TODO: send board state and indicator of who plays next to game players
+        sendBoardState(playerX);
+        sendBoardState(playerO);
     }
 
     ServerClient getTurnPlayer() {
         return turn % 2 == 0 ? playerX : playerO;
+    }
+
+    void sendBoardState(ServerClient client) {
+        byte[] state = new byte[10];
+        for (int square = 0; square < 9; square++) {
+            state[square] = (byte) board[square];
+        }
+        ServerClient turnPlayer = getTurnPlayer();
+        state[9] = (byte) (turnPlayer == client ? '1' : '0');
+        client.sendMessage(state);
     }
 
     void playTurn(ServerClient player, int square) {

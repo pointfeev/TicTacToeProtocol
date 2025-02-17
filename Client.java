@@ -3,17 +3,21 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.Arrays;
+import java.util.concurrent.Callable;
+import java.util.function.Function;
 
 class Client {
     static String host = "127.0.0.1";
     static int port = 9999;
 
     static ClientState state = ClientState.CONNECTING;
-    static Socket socket;
-    static InputStream in;
-    static OutputStream out;
+    static Socket socket = null;
+    static InputStream in = null;
+    static OutputStream out = null;
 
-    static char role = ' ';
+    static Thread inputThread = null;
+
+    static ClientGame game = null;
 
     static boolean connect() {
         state = ClientState.CONNECTING;
@@ -60,6 +64,10 @@ class Client {
             // ignore
         }
 
+        if (inputThread != null && inputThread.isAlive()) {
+            inputThread.interrupt();
+            System.out.print('\n');
+        }
         System.out.print("Disconnected from server\n");
 
         socket = null;
@@ -96,8 +104,45 @@ class Client {
         }
 
         System.out.print("Connected to server\n");
+        game = new ClientGame();
         while (receiveMessage()) {}
         disconnect();
+    }
+
+    static void getInput(String prompt, Callable<Boolean> condition, Function<Byte, Boolean> action) {
+        if (inputThread != null && inputThread.isAlive()) {
+            inputThread.interrupt();
+            while (inputThread != null) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    // ignore
+                }
+            }
+        }
+        inputThread = new Thread(() -> {
+            try {
+                while (condition.call()) {
+                    System.out.print(prompt);
+                    System.in.read(new byte[System.in.available()]); // skip existing bytes
+                    while (condition.call() && System.in.available() < 1) {
+                        Thread.sleep(100);
+                    }
+                    if (!condition.call()) {
+                        break;
+                    }
+                    int input = System.in.read();
+                    System.in.read(new byte[System.in.available()]); // skip remaining bytes
+                    if (action.apply((byte) input)) {
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                // ignore
+            }
+            inputThread = null;
+        });
+        inputThread.start();
     }
 
     /*
@@ -135,68 +180,52 @@ class Client {
      */
     static boolean receiveMessage() {
         try {
-            byte[] bytes = new byte[2];
+            byte[] bytes = new byte[10];
             int bytesRead = in.read(bytes);
             if (bytesRead == -1) {
                 return false;
             }
 
+            if (Client.inputThread != null) {
+                System.out.print('\n');
+            }
+
             if (bytes[0] == 'w') {
-                clear();
-                System.out.print("Waiting for another player...\n");
+                game.waitingForOpponent();
                 return true;
             }
 
             if (bytes[0] == 'x' || bytes[0] == 'o') {
-                role = Character.toUpperCase((char) bytes[0]);
-                clear();
-                System.out.printf("Game starting, you will be %c...\n", role);
+                char role = Character.toUpperCase((char) bytes[0]);
+                game.gameStarting(role);
                 return true;
             }
 
             if (bytes[0] == 'Q') {
                 int ahead = Byte.toUnsignedInt(bytes[1]);
-                String output = "You are in a queue to play. ";
-                if (ahead == 0) {
-                    output += "You are next in line.";
-                } else {
-                    output += "There " + (ahead == 1 ? "is 1 client" : "are " + ahead + " clients") + " ahead of you.";
-                }
-                System.out.print(output + '\n');
+                game.inQueue(ahead);
                 return true;
             }
 
-            boolean win = bytes[0] == 'W';
-            boolean lose = bytes[0] == 'L';
-            if (win || lose || bytes[0] == 'T') {
-                String output = "Game over, ";
-                if (win) {
-                    output += "you win!";
-                    int streak = Byte.toUnsignedInt(bytes[1]);
-                    if (streak > 1) {
-                        output += " You have won " + streak + " games in a row!";
-                    }
-                } else if (lose) {
-                    output += "you lose!";
-                } else {
-                    output += "it's a tie!";
+            if (bytesRead == 10) {
+                char[] board = new char[9];
+                for (int square = 0; square < 9; square++) {
+                    board[square] = (char) bytes[square];
                 }
-                System.out.print(output + '\n');
+                boolean yourTurn = bytes[9] == '1';
+                game.boardStateChanged(board, yourTurn);
+                return true;
+            }
 
-                if (win) {
-                    while (true) {
-                        System.out.print("Do you want to play again (Y/N)? ");
-                        int choiceByte = System.in.read();
-                        System.in.read(new byte[System.in.available()]); // skip the rest of the bytes
-                        char choice = Character.toUpperCase((char) choiceByte);
-                        if (choice == 'Y' || choice == 'N') {
-                            sendMessage(new byte[]{(byte) choice});
-                            break;
-                        }
-                    }
-                } else {
-                    // TODO: see if we need to handle lose or tie any further here
-                }
+            if (bytes[0] == 'W') {
+                int streak = Byte.toUnsignedInt(bytes[1]);
+                game.gameWon(streak);
+                return true;
+            }
+
+            boolean lose = bytes[0] == 'L';
+            if (lose || bytes[0] == 'T') {
+                game.gameLost(!lose);
                 return true;
             }
 
