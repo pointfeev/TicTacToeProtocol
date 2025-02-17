@@ -5,13 +5,13 @@ import java.net.Socket;
 import java.util.Arrays;
 
 class ServerClient extends Thread {
+    static int lastClientId = 0;
+    int clientId;
+
     ClientState state = ClientState.CONNECTING;
     Socket socket;
     InputStream in;
     OutputStream out;
-
-    int clientId;
-    static int lastClientId = 0;
 
     ServerClient(Socket socket) {
         this.socket = socket;
@@ -84,17 +84,18 @@ class ServerClient extends Thread {
     }
 
     String getIdentifier() {
+        String identifier = "Client #" + clientId;
         if (Server.game.state == GameState.WAITING_ON_WINNER && Server.game.lastWinner == this) {
-            return "Winner";
+            return identifier + " (Winner)";
         }
         if (Server.game.state == GameState.PLAYING) {
             if (Server.game.playerX == this) {
-                return "Player X";
+                return identifier + " (Player X)";
             } else if (Server.game.playerO == this) {
-                return "Player O";
+                return identifier + " (Player O)";
             }
         }
-        return "Client #" + clientId;
+        return identifier;
     }
 
     boolean receiveMessage() {

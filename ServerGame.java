@@ -107,7 +107,7 @@ class ServerGame {
         turn = 0;
 
         state = GameState.PLAYING;
-        System.out.print("Game started!\n");
+        System.out.printf("Game started with %s and %s!\n", playerX.getIdentifier(), playerO.getIdentifier());
 
         ServerClient turnPlayer = getTurnPlayer();
         ServerClient otherPlayer = turnPlayer == playerX ? playerO : playerX;
@@ -197,6 +197,8 @@ class ServerGame {
         board[square] = role;
         turn++;
 
+        System.out.printf("%s played square %d.\n", player.getIdentifier(), square + 1);
+
         boolean win = checkWin(role, square);
         if (win || checkTie()) {
             byte[] boardBytes = new byte[9];
@@ -229,28 +231,24 @@ class ServerGame {
         }
         lastWinner = winner;
 
-        String output = "Game over, ";
         if (winner != null && winner.state == ClientState.CONNECTED) {
-            streak++;
+            System.out.printf("Game over, %s wins!\n", winner.getIdentifier());
+            if (++streak > 1) {
+                System.out.printf("%s has won %d games in a row!\n", winner.getIdentifier(), streak);
+            }
 
             if (winner == playerX) {
-                output += "X wins!";
                 if (Server.clients.remove(playerO)) {
                     Server.clients.add(playerO);
                 }
             } else {
-                output += "O wins!";
                 if (Server.clients.remove(playerX)) {
                     Server.clients.add(playerX);
                 }
             }
-            if (streak > 1) {
-                output += " This player has won " + streak + " games in a row!";
-            }
-            System.out.printf("%s\n", output);
 
             state = GameState.WAITING_ON_WINNER;
-            System.out.print("Waiting on winner to respond...\n");
+            System.out.printf("Waiting on %s to respond...\n", winner.getIdentifier());
 
             winner.sendMessage(new byte[]{'W', (byte) streak});
             ServerClient loser = winner == playerX ? playerO : playerX;
@@ -258,8 +256,7 @@ class ServerGame {
                 loser.sendMessage(new byte[]{'L'});
             }
         } else {
-            output += "it's a tie!";
-            System.out.printf("%s\n", output);
+            System.out.print("Game over, it's a tie!\n");
 
             if (playerX != null && playerX.state == ClientState.CONNECTED) {
                 playerX.sendMessage(new byte[]{'T'});
@@ -284,10 +281,10 @@ class ServerGame {
         if (!winnerPlaysAgain) {
             if (Server.clients.remove(lastWinner)) {
                 Server.clients.add(lastWinner);
-                System.out.print("Winner will not play again.\n");
+                System.out.printf("%s will not play again.\n", player.getIdentifier());
             }
         } else {
-            System.out.print("Winner will play again!\n");
+            System.out.printf("%s will play again!\n", player.getIdentifier());
         }
 
         waitForPlayers();
