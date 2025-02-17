@@ -15,7 +15,6 @@ class ServerClient extends Thread {
 
     ServerClient(Socket socket) {
         this.socket = socket;
-        clientId = ++lastClientId;
     }
 
     boolean connect() {
@@ -29,14 +28,9 @@ class ServerClient extends Thread {
             return false;
         }
 
-        if (!Server.clients.add(this)) {
+        if (!Server.connect(this)) {
             disconnect();
             return false;
-        }
-        System.out.printf("%s connected: %s\n", getIdentifier(), socket.getInetAddress().getHostAddress());
-
-        if (Server.game.state == GameState.PLAYING || Server.game.state == GameState.WAITING_ON_WINNER) {
-            sendMessage(new byte[]{'Q', (byte) (Server.clients.size() - 1 - Server.game.getPlayerCount())});
         }
 
         state = ClientState.CONNECTED;
@@ -71,33 +65,7 @@ class ServerClient extends Thread {
         } catch (IOException e) {
             // ignore
         }
-        int clientIndex = Server.clients.indexOf(this);
-        if (clientIndex != -1) {
-            Server.clients.remove(clientIndex);
-            System.out.printf("%s disconnected: %s\n", getIdentifier(), socket.getInetAddress().getHostAddress());
-
-            switch (Server.game.state) {
-                case PLAYING -> {
-                    if (Server.game.playerX == this) {
-                        Server.game.playerX = null;
-                        Server.game.endGame(Server.game.playerO);
-                    } else if (Server.game.playerO == this) {
-                        Server.game.playerO = null;
-                        Server.game.endGame(Server.game.playerX);
-                    } else {
-                        Server.game.sendQueueUpdates(clientIndex);
-                    }
-                }
-                case WAITING_ON_WINNER -> {
-                    if (Server.game.lastWinner == this) {
-                        Server.game.restartGame(this, false);
-                        Server.game.lastWinner = null;
-                    } else {
-                        Server.game.sendQueueUpdates(clientIndex);
-                    }
-                }
-            }
-        }
+        Server.disconnect(this);
         socket = null;
 
         state = ClientState.DISCONNECTED;
@@ -145,25 +113,7 @@ class ServerClient extends Thread {
                 return false;
             }
 
-            if (bytes[0] == 'Q') {
-                return false;
-            }
-
-            int square = Byte.toUnsignedInt(bytes[0]);
-            // TODO: figure out how to check if it's characters 1-9
-            if (square <= 9) {
-                Server.game.playTurn(this, square);
-                return true;
-            }
-
-            boolean playAgain = bytes[0] == 'Y';
-            if (playAgain || bytes[0] == 'N') {
-                Server.game.restartGame(this, playAgain);
-                return true;
-            }
-
-            System.out.printf("WARNING: Received unrecognized message from %s: %s\n", getIdentifier(),
-                    Arrays.toString(bytes));
+            return Server.receiveMessage(this, bytes);
         } catch (IOException e) {
             // ignore
         }

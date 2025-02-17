@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 class Server {
     static ServerSocket serverSocket = null;
@@ -13,6 +14,53 @@ class Server {
                 serverSocket.close();
             } catch (IOException e) {
                 // ignore
+            }
+        }
+    }
+
+    synchronized static boolean connect(ServerClient client) {
+        client.clientId = ++ServerClient.lastClientId;
+
+        if (!Server.clients.add(client)) {
+            return false;
+        }
+        System.out.printf("%s connected: %s\n", client.getIdentifier(),
+                client.socket.getInetAddress().getHostAddress());
+
+        if (Server.game.state == GameState.PLAYING || Server.game.state == GameState.WAITING_ON_WINNER) {
+            client.sendMessage(new byte[]{'Q', (byte) (Server.clients.size() - 1 - Server.game.getPlayerCount())});
+        }
+        return true;
+    }
+
+    synchronized static void disconnect(ServerClient client) {
+        int clientIndex = Server.clients.indexOf(client);
+        if (clientIndex == -1) {
+            return;
+        }
+        Server.clients.remove(clientIndex);
+        System.out.printf("%s disconnected: %s\n", client.getIdentifier(),
+                client.socket.getInetAddress().getHostAddress());
+
+        switch (Server.game.state) {
+            case PLAYING -> {
+                if (Server.game.playerX == client) {
+                    Server.game.playerX = null;
+                    Server.game.endGame(Server.game.playerO);
+                } else if (Server.game.playerO == client) {
+                    Server.game.playerO = null;
+                    Server.game.endGame(Server.game.playerX);
+                } else {
+                    Server.game.sendQueueUpdates(clientIndex);
+                }
+            }
+            case WAITING_ON_WINNER -> {
+                if (Server.game.lastWinner == client) {
+                    Server.game.restartGame(client, false);
+                    Server.game.lastWinner = null;
+                } else {
+                    Server.game.sendQueueUpdates(clientIndex);
+                }
             }
         }
     }
@@ -48,5 +96,36 @@ class Server {
             }
         }
         shutdown();
+    }
+
+    /*
+     * Turn – Client chooses square _ for their move
+     *     1-9, with 1=top left, 2=top middle, 3=top right, 4=center left, … 9=bottom right
+     * Does the winner want to play again or not?
+     *     `Y` = yes, `N` = no
+     * Leave/disconnect (can occur mid-game)
+     *     `Q` (or just close socket)
+     */
+    synchronized static boolean receiveMessage(ServerClient client, byte[] bytes) {
+        if (bytes[0] == 'Q') {
+            return false;
+        }
+
+        int square = Byte.toUnsignedInt(bytes[0]);
+        // TODO: figure out how to check if it's characters 1-9
+        if (square <= 9) {
+            Server.game.playTurn(client, square);
+            return true;
+        }
+
+        boolean playAgain = bytes[0] == 'Y';
+        if (playAgain || bytes[0] == 'N') {
+            Server.game.restartGame(client, playAgain);
+            return true;
+        }
+
+        System.out.printf("WARNING: Received unrecognized message from %s: %s\n", client.getIdentifier(),
+                Arrays.toString(bytes));
+        return false;
     }
 }
