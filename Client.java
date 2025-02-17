@@ -112,7 +112,7 @@ class Client {
     static void getInput(String prompt, Callable<Boolean> condition, Function<Byte, Boolean> action) {
         if (inputThread != null && inputThread.isAlive()) {
             inputThread.interrupt();
-            while (inputThread != null) {
+            while (inputThread.isAlive()) {
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
@@ -140,7 +140,6 @@ class Client {
             } catch (Exception e) {
                 // ignore
             }
-            inputThread = null;
         });
         inputThread.start();
     }
@@ -186,7 +185,7 @@ class Client {
                 return false;
             }
 
-            if (Client.inputThread != null) {
+            if (inputThread != null && inputThread.isAlive()) {
                 System.out.print('\n');
             }
 
