@@ -40,7 +40,7 @@ class ClientGame {
         state = GameState.PLAYING;
 
         if (role == ' ') {
-            System.out.print("ERROR: Received next turn byte before receiving role byte.\n");
+            System.out.print("ERROR: Received next turn byte before game starting byte.\n");
             System.exit(-1);
         }
 
