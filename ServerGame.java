@@ -82,7 +82,9 @@ class ServerGame {
         int players = getPlayerCount();
         for (int index = Server.clients.size() - 1; index >= skipClients; index--) {
             ServerClient client = Server.clients.get(index);
-            client.sendMessage(new byte[]{'Q', (byte) (index - players)});
+            if (client.state == ClientState.CONNECTED) {
+                client.sendMessage(new byte[]{'Q', (byte) (index - players)});
+            }
         }
     }
 
@@ -153,7 +155,7 @@ class ServerGame {
         lastWinner = winner;
 
         String output = "Game over, ";
-        if (winner != null) {
+        if (winner != null && winner.state == ClientState.CONNECTED) {
             streak++;
 
             if (winner == playerX) {
@@ -177,15 +179,19 @@ class ServerGame {
 
             winner.sendMessage(new byte[]{'W', (byte) streak});
             ServerClient loser = winner == playerX ? playerO : playerX;
-            if (loser != null) {
+            if (loser != null && loser.state == ClientState.CONNECTED) {
                 loser.sendMessage(new byte[]{'L'});
             }
         } else {
             output += "it's a tie!";
             System.out.printf("%s\n", output);
 
-            playerX.sendMessage(new byte[]{'T'});
-            playerO.sendMessage(new byte[]{'T'});
+            if (playerX != null && playerX.state == ClientState.CONNECTED) {
+                playerX.sendMessage(new byte[]{'T'});
+            }
+            if (playerO != null && playerO.state == ClientState.CONNECTED) {
+                playerO.sendMessage(new byte[]{'T'});
+            }
 
             waitForPlayers();
         }
