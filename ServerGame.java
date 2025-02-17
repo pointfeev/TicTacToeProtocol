@@ -88,10 +88,13 @@ class ServerGame {
         }
     }
 
-    void startGame() {
-        playerX.sendMessage(new byte[]{'x'});
-        playerO.sendMessage(new byte[]{'o'});
+    void populateBoardState(byte[] byteArray, int offset) {
+        for (int square = 0; square < 9; square++) {
+            byteArray[offset + square] = (byte) board[square];
+        }
+    }
 
+    void startGame() {
         sendQueueUpdates(2);
 
         for (int square = 0; square < 9; square++) {
@@ -102,22 +105,24 @@ class ServerGame {
         state = GameState.PLAYING;
         System.out.print("Game started!\n");
 
-        sendBoardState(playerX);
-        sendBoardState(playerO);
+        ServerClient turnPlayer = getTurnPlayer();
+        ServerClient otherPlayer = turnPlayer == playerX ? playerO : playerX;
+
+        byte[] turnPlayerBytes = new byte[11];
+        turnPlayerBytes[0] = (byte) 'x';
+        populateBoardState(turnPlayerBytes, 1);
+        turnPlayerBytes[10] = (byte) '1';
+        turnPlayer.sendMessage(turnPlayerBytes);
+
+        byte[] otherPlayerBytes = new byte[11];
+        otherPlayerBytes[0] = (byte) 'o';
+        populateBoardState(otherPlayerBytes, 1);
+        otherPlayerBytes[10] = (byte) '0';
+        otherPlayer.sendMessage(otherPlayerBytes);
     }
 
     ServerClient getTurnPlayer() {
         return turn % 2 == 0 ? playerX : playerO;
-    }
-
-    void sendBoardState(ServerClient client) {
-        byte[] state = new byte[10];
-        for (int square = 0; square < 9; square++) {
-            state[square] = (byte) board[square];
-        }
-        ServerClient turnPlayer = getTurnPlayer();
-        state[9] = (byte) (turnPlayer == client ? '1' : '0');
-        client.sendMessage(state);
     }
 
     void playTurn(ServerClient player, int square) {

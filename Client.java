@@ -214,11 +214,16 @@ class Client {
                 do {
                     board[square] = (char) nextByte;
                 } while (++square < 9 && !(eof = ((nextByte = in.read()) == -1)));
-                if (eof || (nextByte = in.read()) == -1) {
+                if (eof) {
                     return false;
                 }
-                boolean yourTurn = nextByte == '1';
-                game.boardStateChanged(board, yourTurn);
+                game.boardStateChanged(board);
+                return true;
+            }
+
+            boolean yourTurn = nextByte == '1';
+            if (yourTurn || nextByte == '0') {
+                game.nextTurn(yourTurn);
                 return true;
             }
 

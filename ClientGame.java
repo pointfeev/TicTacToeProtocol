@@ -27,9 +27,7 @@ class ClientGame {
         System.out.printf("Game starting, you will be %c...\n", role);
     }
 
-    void boardStateChanged(char[] board, boolean yourTurn) {
-        state = GameState.PLAYING;
-
+    void boardStateChanged(char[] board) {
         // TODO: figure out how to best output the board
         //       not all terminals support box drawing characters, may just need to use spaces only
         //       not all terminals may use monospace fonts either, need to figure that out
@@ -58,6 +56,18 @@ class ClientGame {
         System.out.print("   │   │   \n");
         System.out.printf(" %c │ %c │ %c \n", board[6], board[7], board[8]);
         System.out.print("   │   │   \n");*/
+        System.out.printf("%c%c%c\n", board[0], board[1], board[2]);
+        System.out.printf("%c%c%c\n", board[3], board[4], board[5]);
+        System.out.printf("%c%c%c\n", board[6], board[7], board[8]);
+    }
+
+    void nextTurn(boolean yourTurn) {
+        state = GameState.PLAYING;
+
+        if (role == ' ') {
+            System.out.print("ERROR: Received board state before receiving role.\n");
+            System.exit(-1);
+        }
 
         if (yourTurn) {
             System.out.printf("It's your turn, you are %c.\n", role);
@@ -85,8 +95,8 @@ class ClientGame {
         System.out.print(output + '\n');
 
         Client.getInput("Do you want to play again (Y/N)? ",
-                () -> Client.state == ClientState.CONNECTED && state == GameState.WAITING_ON_WINNER, input -> {
-            char choice = Character.toUpperCase((char) input.byteValue());
+                () -> Client.state == ClientState.CONNECTED && state == GameState.WAITING_ON_WINNER, inputByte -> {
+            char choice = Character.toUpperCase((char) inputByte.byteValue());
             if (choice == 'Y' || choice == 'N') {
                 Client.sendMessage(new byte[]{(byte) choice});
                 return true;
