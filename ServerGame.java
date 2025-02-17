@@ -94,6 +94,10 @@ class ServerGame {
         }
     }
 
+    ServerClient getTurnPlayer() {
+        return turn % 2 == 0 ? playerX : playerO;
+    }
+
     void startGame() {
         sendQueueUpdates(2);
 
@@ -121,8 +125,54 @@ class ServerGame {
         otherPlayer.sendMessage(otherPlayerBytes);
     }
 
-    ServerClient getTurnPlayer() {
-        return turn % 2 == 0 ? playerX : playerO;
+    boolean checkWin(char role, int fromSquare) {
+        // check the row of the selected square
+        int row = fromSquare / 3;
+        int startSquare = row * 3;
+        int endSquare = (row + 1) * 3;
+        int filled = 0;
+        for (int square = startSquare; square < endSquare; square++) {
+            if (board[square] == role) {
+                filled++;
+            }
+        }
+        if (filled == 3) {
+            return true;
+        }
+
+        // check the column of the selected square
+        startSquare = fromSquare;
+        int previousSquare;
+        while (true) {
+            previousSquare = startSquare - 3;
+            if (previousSquare < 0) {
+                break;
+            }
+            startSquare = previousSquare;
+        }
+        filled = 0;
+        for (int square = startSquare; square < 9; square += 3) {
+            if (board[square] == role) {
+                filled++;
+            }
+        }
+        if (filled == 3) {
+            return true;
+        }
+
+        // TODO: check the two diagonals
+
+        return false;
+    }
+
+    boolean checkTie() {
+        int filled = 0;
+        for (int square = 0; square < 9; square++) {
+            if (board[square] != ' ') {
+                filled++;
+            }
+        }
+        return filled == 9;
     }
 
     void playTurn(ServerClient player, int square) {
@@ -131,7 +181,11 @@ class ServerGame {
         }
 
         ServerClient turnPlayer = getTurnPlayer();
-        if (turnPlayer != player) {
+        if (turnPlayer == null || turnPlayer.state != ClientState.CONNECTED || turnPlayer != player) {
+            return;
+        }
+        ServerClient otherPlayer = turnPlayer == playerX ? playerO : playerX;
+        if (otherPlayer == null || otherPlayer.state != ClientState.CONNECTED) {
             return;
         }
 
@@ -139,24 +193,29 @@ class ServerGame {
             turnPlayer.sendMessage(new byte[]{'I'});
             return;
         }
-        board[square] = turnPlayer == playerX ? 'X' : 'O';
-
-        // TODO: determine if the move caused a win or a tie
-        //          for efficiency, we can likely get away with only checking the
-        //          changed square's row, column and diagonals instead of the whole board
-
+        char role = turnPlayer == playerX ? 'X' : 'O';
+        board[square] = role;
         turn++;
-        turnPlayer = getTurnPlayer();
-        ServerClient otherPlayer = turnPlayer == playerX ? playerO : playerX;
+
+        boolean win = checkWin(role, square);
+        if (win || checkTie()) {
+            byte[] boardBytes = new byte[9];
+            populateBoardBytes(boardBytes, 0);
+            turnPlayer.sendMessage(boardBytes);
+            otherPlayer.sendMessage(boardBytes);
+
+            endGame(win ? turnPlayer : null);
+            return;
+        }
 
         byte[] turnPlayerBytes = new byte[10];
         populateBoardBytes(turnPlayerBytes, 0);
-        turnPlayerBytes[9] = (byte) '1';
+        turnPlayerBytes[9] = (byte) '0';
         turnPlayer.sendMessage(turnPlayerBytes);
 
         byte[] otherPlayerBytes = new byte[10];
         populateBoardBytes(otherPlayerBytes, 0);
-        otherPlayerBytes[9] = (byte) '0';
+        otherPlayerBytes[9] = (byte) '1';
         otherPlayer.sendMessage(otherPlayerBytes);
     }
 

@@ -28,34 +28,6 @@ class ClientGame {
     }
 
     void boardStateChanged(char[] board) {
-        // TODO: figure out how to best output the board
-        //       not all terminals support box drawing characters, may just need to use spaces only
-        //       not all terminals may use monospace fonts either, need to figure that out
-        /*if (yourTurn) {
-            System.out.print("(1)│(2)│(3)\n");
-        } else {
-            System.out.print("   │   │   \n");
-        }
-        System.out.printf(" %c │ %c │ %c \n", board[0], board[1], board[2]);
-        if (yourTurn) {
-            System.out.print("(4)│(5)│(6)\n");
-        } else {
-            System.out.print("   │   │   \n");
-        }
-        System.out.print("   │   │   \n");
-        System.out.print("───┼───┼───\n");
-        System.out.print("   │   │   \n");
-        System.out.printf(" %c │ %c │ %c \n", board[3], board[4], board[5]);
-        if (yourTurn) {
-            System.out.print("(7)│(8)│(9)\n");
-        } else {
-            System.out.print("   │   │   \n");
-        }
-        System.out.print("   │   │   \n");
-        System.out.print("───┼───┼───\n");
-        System.out.print("   │   │   \n");
-        System.out.printf(" %c │ %c │ %c \n", board[6], board[7], board[8]);
-        System.out.print("   │   │   \n");*/
         System.out.printf("%c %c %c\n", board[0] == ' ' ? '1' : board[0], board[1] == ' ' ? '2' : board[1],
                 board[2] == ' ' ? '3' : board[2]);
         System.out.printf("%c %c %c\n", board[3] == ' ' ? '4' : board[3], board[4] == ' ' ? '5' : board[4],
@@ -122,7 +94,5 @@ class ClientGame {
             output += "you lose!";
         }
         System.out.print(output + '\n');
-
-        // TODO: see if we need to handle lose or tie any further here
     }
 }
