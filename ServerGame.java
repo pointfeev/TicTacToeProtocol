@@ -88,7 +88,7 @@ class ServerGame {
         }
     }
 
-    void populateBoardState(byte[] byteArray, int offset) {
+    void populateBoardBytes(byte[] byteArray, int offset) {
         for (int square = 0; square < 9; square++) {
             byteArray[offset + square] = (byte) board[square];
         }
@@ -110,13 +110,13 @@ class ServerGame {
 
         byte[] turnPlayerBytes = new byte[11];
         turnPlayerBytes[0] = (byte) 'x';
-        populateBoardState(turnPlayerBytes, 1);
+        populateBoardBytes(turnPlayerBytes, 1);
         turnPlayerBytes[10] = (byte) '1';
         turnPlayer.sendMessage(turnPlayerBytes);
 
         byte[] otherPlayerBytes = new byte[11];
         otherPlayerBytes[0] = (byte) 'o';
-        populateBoardState(otherPlayerBytes, 1);
+        populateBoardBytes(otherPlayerBytes, 1);
         otherPlayerBytes[10] = (byte) '0';
         otherPlayer.sendMessage(otherPlayerBytes);
     }
@@ -136,7 +136,7 @@ class ServerGame {
         }
 
         if (board[square] != ' ') {
-            // TODO: send `I` to turnPlayer
+            turnPlayer.sendMessage(new byte[]{'I'});
             return;
         }
         board[square] = turnPlayer == playerX ? 'X' : 'O';
@@ -146,7 +146,18 @@ class ServerGame {
         //          changed square's row, column and diagonals instead of the whole board
 
         turn++;
-        // TODO: send board state and indicator of who plays next to game players
+        turnPlayer = getTurnPlayer();
+        ServerClient otherPlayer = turnPlayer == playerX ? playerO : playerX;
+
+        byte[] turnPlayerBytes = new byte[10];
+        populateBoardBytes(turnPlayerBytes, 0);
+        turnPlayerBytes[9] = (byte) '1';
+        turnPlayer.sendMessage(turnPlayerBytes);
+
+        byte[] otherPlayerBytes = new byte[10];
+        populateBoardBytes(otherPlayerBytes, 0);
+        otherPlayerBytes[9] = (byte) '0';
+        otherPlayer.sendMessage(otherPlayerBytes);
     }
 
     void endGame(ServerClient winner) {

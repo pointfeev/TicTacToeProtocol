@@ -56,26 +56,28 @@ class ClientGame {
         System.out.print("   │   │   \n");
         System.out.printf(" %c │ %c │ %c \n", board[6], board[7], board[8]);
         System.out.print("   │   │   \n");*/
-        System.out.printf("%c%c%c\n", board[0], board[1], board[2]);
-        System.out.printf("%c%c%c\n", board[3], board[4], board[5]);
-        System.out.printf("%c%c%c\n", board[6], board[7], board[8]);
+        System.out.printf("%c %c %c\n", board[0] == ' ' ? '1' : board[0], board[1] == ' ' ? '2' : board[1],
+                board[2] == ' ' ? '3' : board[2]);
+        System.out.printf("%c %c %c\n", board[3] == ' ' ? '4' : board[3], board[4] == ' ' ? '5' : board[4],
+                board[5] == ' ' ? '6' : board[5]);
+        System.out.printf("%c %c %c\n", board[6] == ' ' ? '7' : board[6], board[7] == ' ' ? '8' : board[7],
+                board[8] == ' ' ? '9' : board[8]);
     }
 
     void nextTurn(boolean yourTurn) {
         state = GameState.PLAYING;
 
         if (role == ' ') {
-            System.out.print("ERROR: Received board state before receiving role.\n");
+            System.out.print("ERROR: Received next turn byte before receiving role byte.\n");
             System.exit(-1);
         }
 
         if (yourTurn) {
             System.out.printf("It's your turn, you are %c.\n", role);
             Client.getInput("What square do you want to play (1-9)? ",
-                    () -> Client.state == ClientState.CONNECTED && state == GameState.PLAYING, input -> {
-                // TODO: figure out how to check if it's characters 1-9
-                if (input <= 9) {
-                    Client.sendMessage(new byte[]{input});
+                    () -> Client.state == ClientState.CONNECTED && state == GameState.PLAYING, inputByte -> {
+                if (inputByte >= 49 && inputByte <= 57) { // decimal values for ASCII number characters 1-9
+                    Client.sendMessage(new byte[]{inputByte});
                     return true;
                 }
                 return false;
@@ -83,6 +85,11 @@ class ClientGame {
         } else {
             System.out.printf("It is your opponent's turn, you are %c.\n", role);
         }
+    }
+
+    void invalidMove() {
+        System.out.print("Invalid move!\n");
+        nextTurn(true);
     }
 
     void gameWon(int streak) {

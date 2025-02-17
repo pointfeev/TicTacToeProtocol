@@ -111,9 +111,8 @@ class Server {
             return false;
         }
 
-        // TODO: figure out how to check if it's characters 1-9
-        if (nextByte <= 9) {
-            Server.game.playTurn(client, nextByte);
+        if (nextByte >= 49 && nextByte <= 57) { // decimal values for ASCII number characters 1-9
+            Server.game.playTurn(client, nextByte - 49); // subtract 49 to get a board square index (0-8)
             return true;
         }
 

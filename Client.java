@@ -227,6 +227,11 @@ class Client {
                 return true;
             }
 
+            if (nextByte == 'I') {
+                game.invalidMove();
+                return true;
+            }
+
             if (nextByte == 'W') {
                 if ((nextByte = in.read()) == -1) {
                     return false;
