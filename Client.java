@@ -179,9 +179,8 @@ class Client {
      */
     static boolean receiveMessage() {
         try {
-            byte[] bytes = new byte[10];
-            int bytesRead = in.read(bytes);
-            if (bytesRead == -1) {
+            int nextByte;
+            if ((nextByte = in.read()) == -1) {
                 return false;
             }
 
@@ -189,46 +188,55 @@ class Client {
                 System.out.print('\n');
             }
 
-            if (bytes[0] == 'w') {
+            if (nextByte == 'w') {
                 game.waitingForOpponent();
                 return true;
             }
 
-            if (bytes[0] == 'x' || bytes[0] == 'o') {
-                char role = Character.toUpperCase((char) bytes[0]);
+            if (nextByte == 'x' || nextByte == 'o') {
+                char role = Character.toUpperCase((char) nextByte);
                 game.gameStarting(role);
                 return true;
             }
 
-            if (bytes[0] == 'Q') {
-                int ahead = Byte.toUnsignedInt(bytes[1]);
-                game.inQueue(ahead);
+            if (nextByte == 'Q') {
+                if ((nextByte = in.read()) == -1) {
+                    return false;
+                }
+                game.inQueue(nextByte);
                 return true;
             }
 
-            if (bytesRead == 10) {
+            if (nextByte == 'X' || nextByte == 'O' || nextByte == ' ') {
                 char[] board = new char[9];
-                for (int square = 0; square < 9; square++) {
-                    board[square] = (char) bytes[square];
+                int square = 0;
+                boolean eof = false;
+                do {
+                    board[square] = (char) nextByte;
+                } while (++square < 9 && !(eof = ((nextByte = in.read()) == -1)));
+                if (eof || (nextByte = in.read()) == -1) {
+                    return false;
                 }
-                boolean yourTurn = bytes[9] == '1';
+                boolean yourTurn = nextByte == '1';
                 game.boardStateChanged(board, yourTurn);
                 return true;
             }
 
-            if (bytes[0] == 'W') {
-                int streak = Byte.toUnsignedInt(bytes[1]);
-                game.gameWon(streak);
+            if (nextByte == 'W') {
+                if ((nextByte = in.read()) == -1) {
+                    return false;
+                }
+                game.gameWon(nextByte);
                 return true;
             }
 
-            boolean lose = bytes[0] == 'L';
-            if (lose || bytes[0] == 'T') {
+            boolean lose = nextByte == 'L';
+            if (lose || nextByte == 'T') {
                 game.gameLost(!lose);
                 return true;
             }
 
-            System.out.printf("ERROR: Received unrecognized message from server: %s\n", Arrays.toString(bytes));
+            System.out.printf("ERROR: Received unrecognized byte from server: %s\n", nextByte);
         } catch (IOException e) {
             // ignore
         }

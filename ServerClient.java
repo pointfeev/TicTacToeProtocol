@@ -97,23 +97,14 @@ class ServerClient extends Thread {
         return "Client #" + clientId;
     }
 
-    /*
-     * Turn – Client chooses square _ for their move
-     *     1-9, with 1=top left, 2=top middle, 3=top right, 4=center left, … 9=bottom right
-     * Does the winner want to play again or not?
-     *     `Y` = yes, `N` = no
-     * Leave/disconnect (can occur mid-game)
-     *     `Q` (or just close socket)
-     */
     boolean receiveMessage() {
         try {
-            byte[] bytes = new byte[1];
-            int bytesRead = in.read(bytes);
-            if (bytesRead != 1) {
+            int nextByte;
+            if ((nextByte = in.read()) == -1) {
                 return false;
             }
 
-            return Server.receiveMessage(this, bytes);
+            return Server.receiveMessage(this, nextByte);
         } catch (IOException e) {
             // ignore
         }

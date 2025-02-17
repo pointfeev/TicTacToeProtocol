@@ -106,26 +106,24 @@ class Server {
      * Leave/disconnect (can occur mid-game)
      *     `Q` (or just close socket)
      */
-    synchronized static boolean receiveMessage(ServerClient client, byte[] bytes) {
-        if (bytes[0] == 'Q') {
+    synchronized static boolean receiveMessage(ServerClient client, int nextByte) {
+        if (nextByte == 'Q') {
             return false;
         }
 
-        int square = Byte.toUnsignedInt(bytes[0]);
         // TODO: figure out how to check if it's characters 1-9
-        if (square <= 9) {
-            Server.game.playTurn(client, square);
+        if (nextByte <= 9) {
+            Server.game.playTurn(client, nextByte);
             return true;
         }
 
-        boolean playAgain = bytes[0] == 'Y';
-        if (playAgain || bytes[0] == 'N') {
+        boolean playAgain = nextByte == 'Y';
+        if (playAgain || nextByte == 'N') {
             Server.game.restartGame(client, playAgain);
             return true;
         }
 
-        System.out.printf("WARNING: Received unrecognized message from %s: %s\n", client.getIdentifier(),
-                Arrays.toString(bytes));
+        System.out.printf("WARNING: Received unrecognized byte from %s: %s\n", client.getIdentifier(), nextByte);
         return false;
     }
 }
