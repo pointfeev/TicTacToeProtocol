@@ -125,44 +125,35 @@ class ServerGame {
         otherPlayer.sendMessage(otherPlayerBytes);
     }
 
-    boolean checkWin(char role, int fromSquare) {
-        // check the row of the selected square
-        int row = fromSquare / 3;
-        int startSquare = row * 3;
-        int endSquare = (row + 1) * 3;
+    boolean checkRow(char role, int startSquare, int rowStep, int columnStep) {
         int filled = 0;
-        for (int square = startSquare; square < endSquare; square++) {
+        int row = startSquare / 3;
+        int column = startSquare % 3;
+        do {
+            int square = row * 3 + column;
             if (board[square] == role) {
                 filled++;
-            }
-        }
-        if (filled == 3) {
-            return true;
-        }
-
-        // check the column of the selected square
-        startSquare = fromSquare;
-        int previousSquare;
-        while (true) {
-            previousSquare = startSquare - 3;
-            if (previousSquare < 0) {
+            } else {
                 break;
             }
-            startSquare = previousSquare;
-        }
-        filled = 0;
-        for (int square = startSquare; square < 9; square += 3) {
-            if (board[square] == role) {
-                filled++;
-            }
-        }
-        if (filled == 3) {
+            row += rowStep;
+            column += columnStep;
+        } while (row < 3 && column < 3);
+        return filled == 3;
+    }
+
+    boolean checkWin(char role, int square) {
+        int row = square / 3;
+        int column = square % 3;
+        if (checkRow(role, row * 3, 0, 1) // check row
+                || checkRow(role, column, 1, 0)) { // check column
             return true;
         }
-
-        // TODO: check the two diagonals
-
-        return false;
+        if (square % 2 == 1) { // no need to check diagonals
+            return false;
+        }
+        return checkRow(role, 0, 1, 1) // check negative diagonal
+                || checkRow(role, 2, 1, -1); // check positive diagonal
     }
 
     boolean checkTie() {
