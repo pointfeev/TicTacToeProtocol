@@ -250,9 +250,15 @@ class ServerGame {
             System.out.print("Game over, it's a tie!\n");
 
             if (playerX != null && playerX.state == ClientState.CONNECTED) {
+                if (Server.clients.remove(playerX)) {
+                    Server.clients.add(playerX);
+                }
                 playerX.sendMessage(new byte[]{'T'});
             }
             if (playerO != null && playerO.state == ClientState.CONNECTED) {
+                if (Server.clients.remove(playerO)) {
+                    Server.clients.add(playerO);
+                }
                 playerO.sendMessage(new byte[]{'T'});
             }
 
