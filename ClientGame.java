@@ -46,7 +46,7 @@ class ClientGame {
 
         if (yourTurn) {
             System.out.printf("It's your turn, you are %c.\n", role);
-            Client.getInput("What square do you want to play (1-9)? ",
+            Client.readInput("What square do you want to play (1-9)? ",
                     () -> Client.state == ClientState.CONNECTED && state == GameState.PLAYING, inputByte -> {
                 if (inputByte >= 49 && inputByte <= 57) { // decimal values for ASCII number characters 1-9
                     Client.sendMessage(new byte[]{(byte) (inputByte - 48)}); // subtract 48 to convert to integer
@@ -73,7 +73,7 @@ class ClientGame {
         }
         System.out.print(output + '\n');
 
-        Client.getInput("Do you want to play again (Y/N)? ",
+        Client.readInput("Do you want to play again (Y/N)? ",
                 () -> Client.state == ClientState.CONNECTED && state == GameState.WAITING_ON_WINNER, inputByte -> {
             char choice = Character.toUpperCase((char) inputByte.byteValue());
             if (choice == 'Y' || choice == 'N') {

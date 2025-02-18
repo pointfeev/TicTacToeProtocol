@@ -64,10 +64,7 @@ class Client {
             // ignore
         }
 
-        if (inputThread != null && inputThread.isAlive()) {
-            inputThread.interrupt();
-            System.out.print('\n');
-        }
+        stopReadingInput();
         System.out.print("Disconnected from server\n");
 
         socket = null;
@@ -109,27 +106,33 @@ class Client {
         disconnect();
     }
 
-    static void getInput(String prompt, Callable<Boolean> condition, Function<Byte, Boolean> action) {
+    static void stopReadingInput() {
         if (inputThread != null && inputThread.isAlive()) {
             inputThread.interrupt();
             while (inputThread.isAlive()) {
                 try {
-                    Thread.sleep(100);
+                    Thread.sleep(50);
                 } catch (InterruptedException e) {
                     // ignore
                 }
             }
+            System.out.print('\n');
         }
+    }
+
+    static void readInput(String prompt, Callable<Boolean> condition, Function<Byte, Boolean> action) {
+        stopReadingInput();
+
         inputThread = new Thread(() -> {
             try {
-                while (condition.call()) {
+                while (!inputThread.isInterrupted() && condition.call()) {
                     System.in.read(new byte[System.in.available()]); // skip existing bytes
                     System.out.print(prompt);
-                    while (condition.call() && System.in.available() < 1) {
-                        Thread.sleep(100);
-                    }
-                    if (!condition.call()) {
-                        break;
+                    while (System.in.available() < 1) { // wait for a byte to become available
+                        Thread.sleep(50);
+                        if (inputThread.isInterrupted() || !condition.call()) {
+                            return;
+                        }
                     }
                     int input = System.in.read();
                     System.in.read(new byte[System.in.available()]); // skip remaining bytes
@@ -184,9 +187,7 @@ class Client {
                 return false;
             }
 
-            if (inputThread != null && inputThread.isAlive()) {
-                System.out.print('\n');
-            }
+            stopReadingInput();
 
             if (nextByte == 'w') {
                 game.waitingForOpponent();
