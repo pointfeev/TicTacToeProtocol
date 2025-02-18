@@ -8,7 +8,7 @@ import java.util.function.Function;
 
 class Client {
     static String host = "127.0.0.1";
-    static int port = 9999;
+    static int port = 9876;
 
     static ClientState state = ClientState.CONNECTING;
     static Socket socket = null;

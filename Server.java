@@ -3,6 +3,8 @@ import java.net.ServerSocket;
 import java.util.ArrayList;
 
 class Server {
+    static int port = 9876;
+
     static ServerSocket serverSocket = null;
     static ServerGame game = null;
     static ArrayList<ServerClient> clients = new ArrayList<>();
@@ -72,7 +74,6 @@ class Server {
     public static void main(String[] args) throws IOException {
         clear();
 
-        int port = 9999;
         if (args.length >= 1) {
             try {
                 port = Integer.parseInt(args[0]);
