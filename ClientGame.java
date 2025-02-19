@@ -67,6 +67,8 @@ class ClientGame {
     void gameWon(int streak) {
         state = GameState.WAITING_ON_WINNER;
 
+        role = ' ';
+
         String output = "Game over, you win!";
         if (streak > 1) {
             output += " You have won " + streak + " games in a row!";
@@ -86,6 +88,8 @@ class ClientGame {
 
     void gameLost(boolean tie) {
         state = GameState.WAITING_FOR_PLAYERS;
+
+        role = ' ';
 
         String output = "Game over, ";
         if (tie) {
