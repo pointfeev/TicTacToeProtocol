@@ -276,9 +276,9 @@ class ServerGame {
         }
 
         if (!winnerPlaysAgain) {
-            if (Server.clients.remove(lastWinner)) {
-                Server.clients.add(lastWinner);
+            if (player.state == ClientState.CONNECTED) {
                 System.out.printf("%s will not play again.\n", player.getIdentifier());
+                player.disconnect();
             }
         } else {
             System.out.printf("%s will play again!\n", player.getIdentifier());

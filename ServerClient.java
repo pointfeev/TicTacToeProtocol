@@ -38,6 +38,9 @@ class ServerClient extends Thread {
     }
 
     void disconnect() {
+        if (state == ClientState.DISCONNECTING || state == ClientState.DISCONNECTED) {
+            return;
+        }
         state = ClientState.DISCONNECTING;
 
         if (in != null) {
@@ -99,6 +102,10 @@ class ServerClient extends Thread {
     }
 
     boolean receiveMessage() {
+        if (state != ClientState.CONNECTED) {
+            return false;
+        }
+
         try {
             int nextByte;
             if ((nextByte = in.read()) == -1) {

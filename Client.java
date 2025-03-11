@@ -36,6 +36,9 @@ class Client {
     }
 
     static void disconnect() {
+        if (state == ClientState.DISCONNECTING || state == ClientState.DISCONNECTED) {
+            return;
+        }
         state = ClientState.DISCONNECTING;
 
         if (in != null) {
