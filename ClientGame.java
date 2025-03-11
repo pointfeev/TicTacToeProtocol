@@ -28,12 +28,12 @@ class ClientGame {
     }
 
     void boardStateChanged(char[] board) {
-        System.out.printf("%c %c %c\n", board[0] == ' ' ? '1' : board[0], board[1] == ' ' ? '2' : board[1],
-                board[2] == ' ' ? '3' : board[2]);
-        System.out.printf("%c %c %c\n", board[3] == ' ' ? '4' : board[3], board[4] == ' ' ? '5' : board[4],
-                board[5] == ' ' ? '6' : board[5]);
-        System.out.printf("%c %c %c\n", board[6] == ' ' ? '7' : board[6], board[7] == ' ' ? '8' : board[7],
-                board[8] == ' ' ? '9' : board[8]);
+        System.out.printf("%c %c %c\n", board[0] == ' ' ? '_' : board[0], board[1] == ' ' ? '_' : board[1],
+                board[2] == ' ' ? '_' : board[2]);
+        System.out.printf("%c %c %c\n", board[3] == ' ' ? '_' : board[3], board[4] == ' ' ? '_' : board[4],
+                board[5] == ' ' ? '_' : board[5]);
+        System.out.printf("%c %c %c\n", board[6] == ' ' ? '_' : board[6], board[7] == ' ' ? '_' : board[7],
+                board[8] == ' ' ? '_' : board[8]);
     }
 
     void nextTurn(boolean yourTurn) {
