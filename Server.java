@@ -8,12 +8,13 @@ class Server {
 
     static ServerSocket serverSocket = null;
     static ServerGame game = null;
-    static ArrayList<ServerClient> clients = new ArrayList<>();
+    static ArrayList<ServerClient> clients = null;
 
     /**
      * Initializes the server, shutdown hook, server socket and server game state.
      * <p>
-     * Listens for client connections on the main thread indefinitely; see {@link ServerClient#ServerClient(Socket)}.
+     * Listens for server socket connections on the main thread indefinitely with {@link ServerSocket#accept()}, and
+     * passes accepted socket connections to {@link ServerClient#ServerClient(Socket)}.
      * <p>
      * Runs {@link #shutdown()} once the server socket closes.
      *
@@ -34,6 +35,7 @@ class Server {
 
         Runtime.getRuntime().addShutdownHook(new Thread(Server::shutdown));
 
+        clients = new ArrayList<>();
         serverSocket = new ServerSocket(port);
         System.out.printf("Server started on port %d\n", port);
         game = new ServerGame();
