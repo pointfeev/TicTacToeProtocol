@@ -47,6 +47,7 @@ class ServerGame {
                     startGame();
                     break;
                 }
+                Thread.yield();
             }
         });
         waitThread.start();

@@ -54,7 +54,9 @@ class Client {
 
         System.out.print("Connected to server\n");
         game = new ClientGame();
-        while (receiveMessage()) {}
+        while (receiveMessage()) {
+            Thread.yield();
+        }
         disconnect();
     }
 
@@ -91,7 +93,7 @@ class Client {
                     System.in.read(new byte[System.in.available()]); // skip existing bytes
                     System.out.print(prompt);
                     while (System.in.available() < 1) { // wait for a byte to become available
-                        Thread.sleep(50);
+                        Thread.yield();
                         if (inputThread.isInterrupted() || !condition.call()) {
                             return;
                         }
@@ -118,11 +120,7 @@ class Client {
                 if (!inputThread.isInterrupted()) {
                     inputThread.interrupt();
                 }
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException e) {
-                    // ignore
-                }
+                Thread.yield();
             } while (inputThread.isAlive());
             System.out.print('\n');
         }

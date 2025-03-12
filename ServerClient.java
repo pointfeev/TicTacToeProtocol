@@ -33,7 +33,9 @@ class ServerClient {
                 return;
             }
 
-            while (receiveMessage()) {}
+            while (receiveMessage()) {
+                Thread.yield();
+            }
             disconnect();
         });
         thread.start();
