@@ -40,6 +40,28 @@ class ServerClient {
     }
 
     /**
+     * Builds and returns a string representation of the client, including client ID and special game state data
+     * (such as 'Winner', 'Player X', etc.).
+     *
+     * @return A string representation of the client.
+     */
+    @Override
+    public String toString() {
+        String identifier = "Client #" + clientId;
+        if (Server.game.state == GameState.WAITING_ON_WINNER && Server.game.lastWinner == this) {
+            return identifier + " (Winner)";
+        }
+        if (Server.game.state == GameState.PLAYING) {
+            if (Server.game.playerX == this) {
+                return identifier + " (Player X)";
+            } else if (Server.game.playerO == this) {
+                return identifier + " (Player O)";
+            }
+        }
+        return identifier;
+    }
+
+    /**
      * Sets up the client socket input and output streams, and calls the synchronized
      * {@link Server#connect(ServerClient)} method for thread-safe server/game state updates.
      *
@@ -146,27 +168,5 @@ class ServerClient {
             return false;
         }
         return true;
-    }
-
-    /**
-     * Builds and returns a string representation of the client, including client ID and special game state data
-     * (such as 'Winner', 'Player X', etc.).
-     *
-     * @return A string representation of the client.
-     */
-    @Override
-    public String toString() {
-        String identifier = "Client #" + clientId;
-        if (Server.game.state == GameState.WAITING_ON_WINNER && Server.game.lastWinner == this) {
-            return identifier + " (Winner)";
-        }
-        if (Server.game.state == GameState.PLAYING) {
-            if (Server.game.playerX == this) {
-                return identifier + " (Player X)";
-            } else if (Server.game.playerO == this) {
-                return identifier + " (Player O)";
-            }
-        }
-        return identifier;
     }
 }

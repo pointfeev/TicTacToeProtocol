@@ -11,6 +11,51 @@ class Server {
     static ArrayList<ServerClient> clients = new ArrayList<>();
 
     /**
+     * Initializes the server, shutdown hook, server socket and server game state.
+     * <p>
+     * Listens for client connections on the main thread indefinitely; see {@link ServerClient#ServerClient(Socket)}.
+     * <p>
+     * Runs {@link #shutdown()} once the server socket closes.
+     *
+     * @param args Takes in a port number as argument #1, which defaults to {@link #port}.
+     * @throws IOException From the {@link ServerSocket#ServerSocket(int)} constructor.
+     */
+    public static void main(String[] args) throws IOException {
+        clear();
+
+        if (args.length >= 1) {
+            try {
+                port = Integer.parseInt(args[0]);
+            } catch (NumberFormatException e) {
+                System.out.printf("ERROR: Invalid port number \"%s\"\n", args[0]);
+                System.exit(-1);
+            }
+        }
+
+        Runtime.getRuntime().addShutdownHook(new Thread(Server::shutdown));
+
+        serverSocket = new ServerSocket(port);
+        System.out.printf("Server started on port %d\n", port);
+        game = new ServerGame();
+        while (!serverSocket.isClosed()) {
+            try {
+                new ServerClient(serverSocket.accept());
+            } catch (IOException e) {
+                // ignore
+            }
+        }
+        shutdown();
+    }
+
+    /**
+     * Attempt to clear the console using control sequences.
+     */
+    static void clear() {
+        System.out.print("\033[H\033[2J\033[3J");
+        // System.out.print("\033\143");
+    }
+
+    /**
      * Closes the server socket.
      */
     static void shutdown() {
@@ -81,51 +126,6 @@ class Server {
                 }
             }
         }
-    }
-
-    /**
-     * Attempt to clear the console using control sequences.
-     */
-    static void clear() {
-        System.out.print("\033[H\033[2J\033[3J");
-        // System.out.print("\033\143");
-    }
-
-    /**
-     * Initializes the server, shutdown hook, server socket and server game state.
-     * <p>
-     * Listens for client connections on the main thread indefinitely; see {@link ServerClient#ServerClient(Socket)}.
-     * <p>
-     * Runs {@link #shutdown()} once the server socket closes.
-     *
-     * @param args Takes in a port number as argument #1, which defaults to {@link #port}.
-     * @throws IOException From the {@link ServerSocket#ServerSocket(int)} constructor.
-     */
-    public static void main(String[] args) throws IOException {
-        clear();
-
-        if (args.length >= 1) {
-            try {
-                port = Integer.parseInt(args[0]);
-            } catch (NumberFormatException e) {
-                System.out.printf("ERROR: Invalid port number \"%s\"\n", args[0]);
-                System.exit(-1);
-            }
-        }
-
-        Runtime.getRuntime().addShutdownHook(new Thread(Server::shutdown));
-
-        serverSocket = new ServerSocket(port);
-        System.out.printf("Server started on port %d\n", port);
-        game = new ServerGame();
-        while (!serverSocket.isClosed()) {
-            try {
-                new ServerClient(serverSocket.accept());
-            } catch (IOException e) {
-                // ignore
-            }
-        }
-        shutdown();
     }
 
     /**

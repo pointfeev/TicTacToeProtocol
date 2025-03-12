@@ -20,6 +20,115 @@ class Client {
     static ClientGame game = null;
 
     /**
+     * Initializes the client, shutdown hook, client socket and client game state.
+     * <p>
+     * Listens for messages from the server on the main thread indefinitely; see {@link #receiveMessage()}.
+     * <p>
+     * Once a message fails to be received or is invalid, stops listening for messages and calls {@link #disconnect()}.
+     *
+     * @param args Takes in a host as argument #1, which defaults to {@link #host}. Takes in a port number as
+     *             argument #2, which defaults to {@link #port}.
+     */
+    public static void main(String[] args) {
+        clear();
+
+        if (args.length >= 1) {
+            host = args[0];
+        }
+        if (args.length >= 2) {
+            try {
+                port = Integer.parseInt(args[1]);
+            } catch (NumberFormatException e) {
+                System.out.printf("ERROR: Invalid port number \"%s\"\n", args[1]);
+                System.exit(-1);
+            }
+        }
+
+        Runtime.getRuntime().addShutdownHook(new Thread(Client::disconnect));
+
+        System.out.printf("Connecting to server at %s:%d...\n", host, port);
+        if (!connect()) {
+            System.out.print("ERROR: Failed to connect to server\n");
+            System.exit(-1);
+        }
+
+        System.out.print("Connected to server\n");
+        game = new ClientGame();
+        while (receiveMessage()) {}
+        disconnect();
+    }
+
+    /**
+     * Attempt to clear the console using control sequences.
+     */
+    static void clear() {
+        System.out.print("\033[H\033[2J\033[3J");
+        // System.out.print("\033\143");
+    }
+
+    /**
+     * Runs a thread that waits for input from the client.
+     * <p>
+     * Starts by calling {@link #stopReadingInput()} in case the client is already reading input.
+     * <p>
+     * I use a thread here so that we can wait for input in a non-blocking manner, so that the client can listen to
+     * messages while it waits on input.
+     * <p>
+     * Unfortunately, the way I currently do this will make it so that typed input doesn't display until the client
+     * submits it (by hitting enter) on Windows-based terminals; I either need to find a way around that, or just
+     * scrap this entirely.
+     *
+     * @param prompt    The input prompt.
+     * @param condition The condition (callable) by which to continue waiting for input.
+     * @param action    The action (function) to call once input has been obtained.
+     */
+    static void readInput(String prompt, Callable<Boolean> condition, Function<Byte, Boolean> action) {
+        stopReadingInput();
+
+        inputThread = new Thread(() -> {
+            try {
+                while (!inputThread.isInterrupted() && condition.call()) {
+                    System.in.read(new byte[System.in.available()]); // skip existing bytes
+                    System.out.print(prompt);
+                    while (System.in.available() < 1) { // wait for a byte to become available
+                        Thread.sleep(50);
+                        if (inputThread.isInterrupted() || !condition.call()) {
+                            return;
+                        }
+                    }
+                    int input = System.in.read();
+                    System.in.read(new byte[System.in.available()]); // skip remaining bytes
+                    if (action.apply((byte) input)) {
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                // ignore
+            }
+        });
+        inputThread.start();
+    }
+
+    /**
+     * Interrupts the thread that is waiting for input and waits for that thread to die.
+     */
+    static void stopReadingInput() {
+        if (inputThread != null && inputThread.isAlive()) {
+            do {
+                if (!inputThread.isInterrupted()) {
+                    inputThread.interrupt();
+                }
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    // ignore
+                }
+            } while (inputThread.isAlive());
+            System.out.print('\n');
+        }
+    }
+
+    /**
      * Sets up the client socket and its input and output streams.
      *
      * @return Boolean indicating success.
@@ -83,115 +192,6 @@ class Client {
         socket = null;
 
         state = ClientState.DISCONNECTED;
-    }
-
-    /**
-     * Attempt to clear the console using control sequences.
-     */
-    static void clear() {
-        System.out.print("\033[H\033[2J\033[3J");
-        // System.out.print("\033\143");
-    }
-
-    /**
-     * Initializes the client, shutdown hook, client socket and client game state.
-     * <p>
-     * Listens for messages from the server on the main thread indefinitely; see {@link #receiveMessage()}.
-     * <p>
-     * Once a message fails to be received or is invalid, stops listening for messages and calls {@link #disconnect()}.
-     *
-     * @param args Takes in a host as argument #1, which defaults to {@link #host}. Takes in a port number as
-     *             argument #2, which defaults to {@link #port}.
-     */
-    public static void main(String[] args) {
-        clear();
-
-        if (args.length >= 1) {
-            host = args[0];
-        }
-        if (args.length >= 2) {
-            try {
-                port = Integer.parseInt(args[1]);
-            } catch (NumberFormatException e) {
-                System.out.printf("ERROR: Invalid port number \"%s\"\n", args[1]);
-                System.exit(-1);
-            }
-        }
-
-        Runtime.getRuntime().addShutdownHook(new Thread(Client::disconnect));
-
-        System.out.printf("Connecting to server at %s:%d...\n", host, port);
-        if (!connect()) {
-            System.out.print("ERROR: Failed to connect to server\n");
-            System.exit(-1);
-        }
-
-        System.out.print("Connected to server\n");
-        game = new ClientGame();
-        while (receiveMessage()) {}
-        disconnect();
-    }
-
-    /**
-     * Interrupts the thread that is waiting for input and waits for that thread to die.
-     */
-    static void stopReadingInput() {
-        if (inputThread != null && inputThread.isAlive()) {
-            do {
-                if (!inputThread.isInterrupted()) {
-                    inputThread.interrupt();
-                }
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException e) {
-                    // ignore
-                }
-            } while (inputThread.isAlive());
-            System.out.print('\n');
-        }
-    }
-
-    /**
-     * Runs a thread that waits for input from the client.
-     * <p>
-     * Starts by calling {@link #stopReadingInput()} in case the client is already reading input.
-     * <p>
-     * I use a thread here so that we can wait for input in a non-blocking manner, so that the client can listen to
-     * messages while it waits on input.
-     * <p>
-     * Unfortunately, the way I currently do this will make it so that typed input doesn't display until the client
-     * submits it (by hitting enter) on Windows-based terminals; I either need to find a way around that, or just
-     * scrap this entirely.
-     *
-     * @param prompt    The input prompt.
-     * @param condition The condition (callable) by which to continue waiting for input.
-     * @param action    The action (function) to call once input has been obtained.
-     */
-    static void readInput(String prompt, Callable<Boolean> condition, Function<Byte, Boolean> action) {
-        stopReadingInput();
-
-        inputThread = new Thread(() -> {
-            try {
-                while (!inputThread.isInterrupted() && condition.call()) {
-                    System.in.read(new byte[System.in.available()]); // skip existing bytes
-                    System.out.print(prompt);
-                    while (System.in.available() < 1) { // wait for a byte to become available
-                        Thread.sleep(50);
-                        if (inputThread.isInterrupted() || !condition.call()) {
-                            return;
-                        }
-                    }
-                    int input = System.in.read();
-                    System.in.read(new byte[System.in.available()]); // skip remaining bytes
-                    if (action.apply((byte) input)) {
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                // ignore
-            }
-        });
-        inputThread.start();
     }
 
     /**
