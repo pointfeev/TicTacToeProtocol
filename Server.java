@@ -130,6 +130,8 @@ class Server {
 
     /**
      * Parses the received byte(s) and updates the server/game state accordingly.
+     * <p>
+     * Called by {@link ServerClient#receiveMessage()}; see that method.
      *
      * @param client   The client sending the message.
      * @param nextByte The byte received from the client.
