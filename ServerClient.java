@@ -4,7 +4,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.Arrays;
 
-class ServerClient extends Thread {
+class ServerClient {
     static int lastClientId = 0;
     int clientId;
 
@@ -13,14 +13,30 @@ class ServerClient extends Thread {
     InputStream in;
     OutputStream out;
 
+    Thread thread;
+
     /**
-     * Starts the client thread; see {@link #run()}.
+     * Starts a new thread that runs {@link #connect()} to initialize the client, then listens for messages from the
+     * client indefinitely; see {@link #receiveMessage()}.
+     * <p>
+     * Once a message fails to be received or is invalid, stops listening for messages and calls {@link #disconnect()}.
      *
      * @param socket Socket to associate with the client.
      */
     ServerClient(Socket socket) {
         this.socket = socket;
-        start();
+
+        thread = new Thread(() -> {
+            if (!connect()) {
+                System.out.printf("WARNING: %s failed to connect: %s\n", this,
+                        socket.getInetAddress().getHostAddress());
+                return;
+            }
+
+            while (receiveMessage()) {}
+            disconnect();
+        });
+        thread.start();
     }
 
     /**
@@ -91,45 +107,6 @@ class ServerClient extends Thread {
     }
 
     /**
-     * Runs {@link #connect()} to initialize the client, then listens for messages from the client indefinitely; see
-     * {@link #receiveMessage()}.
-     * <p>
-     * Once a message fails to be received or is invalid, stops listening for messages and calls {@link #disconnect()}.
-     */
-    @Override
-    public void run() {
-        if (!connect()) {
-            System.out.printf("WARNING: %s failed to connect: %s\n", this, socket.getInetAddress().getHostAddress());
-            return;
-        }
-
-        while (receiveMessage()) {}
-        disconnect();
-    }
-
-    /**
-     * Builds and returns a string representation of the client, including client ID and special game state data
-     * (such as 'Winner', 'Player X', etc.).
-     *
-     * @return A string representation of the client.
-     */
-    @Override
-    public String toString() {
-        String identifier = "Client #" + clientId;
-        if (Server.game.state == GameState.WAITING_ON_WINNER && Server.game.lastWinner == this) {
-            return identifier + " (Winner)";
-        }
-        if (Server.game.state == GameState.PLAYING) {
-            if (Server.game.playerX == this) {
-                return identifier + " (Player X)";
-            } else if (Server.game.playerO == this) {
-                return identifier + " (Player O)";
-            }
-        }
-        return identifier;
-    }
-
-    /**
      * Waits for a byte from the client by calling {@link InputStream#read()}, then sends the received byte over to the
      * {@link Server#receiveMessage(ServerClient, int)} method for thread-safe server/game state updates.
      *
@@ -169,5 +146,27 @@ class ServerClient extends Thread {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Builds and returns a string representation of the client, including client ID and special game state data
+     * (such as 'Winner', 'Player X', etc.).
+     *
+     * @return A string representation of the client.
+     */
+    @Override
+    public String toString() {
+        String identifier = "Client #" + clientId;
+        if (Server.game.state == GameState.WAITING_ON_WINNER && Server.game.lastWinner == this) {
+            return identifier + " (Winner)";
+        }
+        if (Server.game.state == GameState.PLAYING) {
+            if (Server.game.playerX == this) {
+                return identifier + " (Player X)";
+            } else if (Server.game.playerO == this) {
+                return identifier + " (Player O)";
+            }
+        }
+        return identifier;
     }
 }

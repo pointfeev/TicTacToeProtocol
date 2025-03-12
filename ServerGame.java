@@ -14,6 +14,8 @@ class ServerGame {
 
     Random random = new Random();
 
+    Thread waitThread = null;
+
     /**
      * Sets the random number generator seed to the current time; see {@link Random#setSeed(long)} and
      * {@link System#currentTimeMillis()}.
@@ -39,14 +41,15 @@ class ServerGame {
 
         state = GameState.WAITING_FOR_PLAYERS;
         System.out.print("Waiting for players...\n");
-        new Thread(() -> {
+        waitThread = new Thread(() -> {
             while (!Server.serverSocket.isClosed()) {
                 if (findPlayers()) {
                     startGame();
                     break;
                 }
             }
-        }).start();
+        });
+        waitThread.start();
     }
 
     /**
