@@ -304,10 +304,8 @@ class Client {
 
     /**
      * Sends a message to the server.
-     *
-     * @return Boolean indicating success.
      */
-    static boolean sendMessage(byte[] bytes) {
+    static void sendMessage(byte[] bytes) {
         try {
             out.write(bytes);
         } catch (IOException e) {
@@ -315,8 +313,6 @@ class Client {
                 System.out.printf("ERROR: Failed to send message to server: %s\n", Arrays.toString(bytes));
                 System.exit(-1);
             }
-            return false;
         }
-        return true;
     }
 }
