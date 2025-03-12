@@ -13,10 +13,22 @@ class ServerClient extends Thread {
     InputStream in;
     OutputStream out;
 
+    /**
+     * Starts the client thread; see {@link #run()}.
+     *
+     * @param socket Socket to associate with the client.
+     */
     ServerClient(Socket socket) {
         this.socket = socket;
+        start();
     }
 
+    /**
+     * Sets up the client socket input and output streams, and calls the synchronized
+     * {@link Server#connect(ServerClient)} method for thread-safe server/game state updates.
+     *
+     * @return Boolean indicating success.
+     */
     boolean connect() {
         state = ClientState.CONNECTING;
 
@@ -37,6 +49,10 @@ class ServerClient extends Thread {
         return true;
     }
 
+    /**
+     * Closes the client socket and its input and output streams, and calls the synchronized
+     * {@link Server#disconnect(ServerClient)} method for thread-safe server/game state updates.
+     */
     void disconnect() {
         if (state == ClientState.DISCONNECTING || state == ClientState.DISCONNECTED) {
             return;
@@ -74,11 +90,16 @@ class ServerClient extends Thread {
         state = ClientState.DISCONNECTED;
     }
 
+    /**
+     * Runs {@link #connect()} to initialize the client, then listens for messages from the client indefinitely; see
+     * {@link #receiveMessage()}.
+     * <p>
+     * Once a message fails to be received or is invalid, stops listening for messages and calls {@link #disconnect()}.
+     */
     @Override
     public void run() {
         if (!connect()) {
-            System.out.printf("WARNING: %s failed to connect: %s\n", getIdentifier(),
-                    socket.getInetAddress().getHostAddress());
+            System.out.printf("WARNING: %s failed to connect: %s\n", this, socket.getInetAddress().getHostAddress());
             return;
         }
 
@@ -86,7 +107,14 @@ class ServerClient extends Thread {
         disconnect();
     }
 
-    String getIdentifier() {
+    /**
+     * Builds and returns a string representation of the client, including client ID and special game state data
+     * (such as 'Winner', 'Player X', etc.).
+     *
+     * @return A string representation of the client.
+     */
+    @Override
+    public String toString() {
         String identifier = "Client #" + clientId;
         if (Server.game.state == GameState.WAITING_ON_WINNER && Server.game.lastWinner == this) {
             return identifier + " (Winner)";
@@ -101,6 +129,12 @@ class ServerClient extends Thread {
         return identifier;
     }
 
+    /**
+     * Waits for a byte from the client by calling {@link InputStream#read()}, then sends the received byte over to the
+     * {@link Server#receiveMessage(ServerClient, int)} method for thread-safe server/game state updates.
+     *
+     * @return Boolean indicating success.
+     */
     boolean receiveMessage() {
         if (state != ClientState.CONNECTED) {
             return false;
@@ -119,45 +153,17 @@ class ServerClient extends Thread {
         return false;
     }
 
-    /*
-     * Current state of the board
-     *     String – each of 9 characters represents one square on the board (`X`, `O` or ` `)
-     *         Always sent "square 1", "square 2", …, "square 9"
-     * Indicate who plays next
-     *     Boolean – `1` = your turn, `0` = other player`s turn
-     * You won/lost/tied
-     *     `W` = win (followed by byte with length of win streak)
-     *     `L` = loss
-     *     `T` = tie
-     * Indicate winning streak to winner
-     *     Send at end of each game to winner
-     *     Number – indicates length of the streak
-     *         In binary, one byte of 1..255
-     *         Streaks longer than 255 will be reported as 255
-     * Winner – Play again?
-     *     Implied by `W` message
-     * Incorrect move
-     *     `I`
-     *     Only sent if move is incorrect
-     *     If correct, message with board and indicating other player`s move
-     * How many people before the player in the queue
-     *     `Q` followed by byte with value 0…254
-     *     255 = lots (255 or more) players ahead of you
-     * Waiting for another player to join the game
-     *     `w` (lowercase)
-     *     Only sent if there is not yet a second player
-     *     IF second player arrives, send "game starting" message
-     * Game starting
-     *     `x` – Game starting, you are X
-     *     `o` – Game starting, you are O
-     *     Indicate for each player if they are `X` or `O`
+    /**
+     * Sends a message to the client.
+     *
+     * @return Boolean indicating success.
      */
     boolean sendMessage(byte[] bytes) {
         try {
             out.write(bytes);
         } catch (IOException e) {
             if (state != ClientState.DISCONNECTING) {
-                System.out.printf("ERROR: Failed to send message to %s: %s\n", getIdentifier(), Arrays.toString(bytes));
+                System.out.printf("ERROR: Failed to send message to %s: %s\n", this, Arrays.toString(bytes));
                 System.exit(-1);
             }
             return false;
