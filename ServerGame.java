@@ -42,7 +42,7 @@ class ServerGame {
         state = GameState.WAITING_FOR_PLAYERS;
         System.out.print("Waiting for players...\n");
         waitThread = new Thread(() -> {
-            while (!Server.serverSocket.isClosed()) {
+            while (Server.serverSocket != null) {
                 if (findPlayers()) {
                     startGame();
                     break;

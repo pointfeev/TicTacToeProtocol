@@ -37,7 +37,7 @@ class Server {
         serverSocket = new ServerSocket(port);
         System.out.printf("Server started on port %d\n", port);
         game = new ServerGame();
-        while (!serverSocket.isClosed()) {
+        while (serverSocket != null) {
             try {
                 new ServerClient(serverSocket.accept());
             } catch (IOException e) {
@@ -65,6 +65,9 @@ class Server {
             } catch (IOException e) {
                 // ignore
             }
+            serverSocket = null;
+
+            System.out.print("Server stopped\n");
         }
     }
 
