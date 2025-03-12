@@ -19,6 +19,11 @@ class Client {
 
     static ClientGame game = null;
 
+    /**
+     * Sets up the client socket and its input and output streams.
+     *
+     * @return Boolean indicating success.
+     */
     static boolean connect() {
         state = ClientState.CONNECTING;
 
@@ -35,6 +40,11 @@ class Client {
         return true;
     }
 
+    /**
+     * Closes the client socket and its input and output streams.
+     * <p>
+     * Calls {@link #stopReadingInput()} to interrupt input before disconnecting.
+     */
     static void disconnect() {
         if (state == ClientState.DISCONNECTING || state == ClientState.DISCONNECTED) {
             return;
@@ -75,11 +85,24 @@ class Client {
         state = ClientState.DISCONNECTED;
     }
 
+    /**
+     * Attempt to clear the console using control sequences.
+     */
     static void clear() {
         System.out.print("\033[H\033[2J\033[3J");
         // System.out.print("\033\143");
     }
 
+    /**
+     * Initializes the client, shutdown hook, client socket and client game state.
+     * <p>
+     * Listens for messages from the server on the main thread indefinitely; see {@link #receiveMessage()}.
+     * <p>
+     * Once a message fails to be received or is invalid, stops listening for messages and calls {@link #disconnect()}.
+     *
+     * @param args Takes in a host as argument #1, which defaults to {@link #host}. Takes in a port number as
+     *             argument #2, which defaults to {@link #port}.
+     */
     public static void main(String[] args) {
         clear();
 
@@ -109,20 +132,41 @@ class Client {
         disconnect();
     }
 
+    /**
+     * Interrupts the thread that is waiting for input and waits for that thread to die.
+     */
     static void stopReadingInput() {
         if (inputThread != null && inputThread.isAlive()) {
-            inputThread.interrupt();
-            while (inputThread.isAlive()) {
+            do {
+                if (!inputThread.isInterrupted()) {
+                    inputThread.interrupt();
+                }
                 try {
                     Thread.sleep(50);
                 } catch (InterruptedException e) {
                     // ignore
                 }
-            }
+            } while (inputThread.isAlive());
             System.out.print('\n');
         }
     }
 
+    /**
+     * Runs a thread that waits for input from the client.
+     * <p>
+     * Starts by calling {@link #stopReadingInput()} in case the client is already reading input.
+     * <p>
+     * I use a thread here so that we can wait for input in a non-blocking manner, so that the client can listen to
+     * messages while it waits on input.
+     * <p>
+     * Unfortunately, the way I currently do this will make it so that typed input doesn't display until the client
+     * submits it (by hitting enter) on Windows-based terminals; I either need to find a way around that, or just
+     * scrap this entirely.
+     *
+     * @param prompt    The input prompt.
+     * @param condition The condition (callable) by which to continue waiting for input.
+     * @param action    The action (function) to call once input has been obtained.
+     */
     static void readInput(String prompt, Callable<Boolean> condition, Function<Byte, Boolean> action) {
         stopReadingInput();
 
@@ -150,38 +194,13 @@ class Client {
         inputThread.start();
     }
 
-    /*
-     * Current state of the board
-     *     String – each of 9 characters represents one square on the board (`X`, `O` or ` `)
-     *         Always sent "square 1", "square 2", …, "square 9"
-     * Indicate who plays next
-     *     Boolean – `1` = your turn, `0` = other player`s turn
-     * You won/lost/tied
-     *     `W` = win (followed by byte with length of win streak)
-     *     `L` = loss
-     *     `T` = tie
-     * Indicate winning streak to winner
-     *     Send at end of each game to winner
-     *     Number – indicates length of the streak
-     *         In binary, one byte of 1..255
-     *         Streaks longer than 255 will be reported as 255
-     * Winner – Play again?
-     *     Implied by `W` message
-     * Incorrect move
-     *     `I`
-     *     Only sent if move is incorrect
-     *     If correct, message with board and indicating other player`s move
-     * How many people before the player in the queue
-     *     `Q` followed by byte with value 0…254
-     *     255 = lots (255 or more) players ahead of you
-     * Waiting for another player to join the game
-     *     `w` (lowercase)
-     *     Only sent if there is not yet a second player
-     *     IF second player arrives, send "game starting" message
-     * Game starting
-     *     `x` – Game starting, you are X
-     *     `o` – Game starting, you are O
-     *     Indicate for each player if they are `X` or `O`
+    /**
+     * Waits for a byte from the server by calling {@link InputStream#read()}, then parses the received byte(s) and
+     * updates the client/game state accordingly.
+     * <p>
+     * Starts by calling {@link #stopReadingInput()} in case the client is reading input.
+     *
+     * @return Boolean indicating success.
      */
     static boolean receiveMessage() {
         try {
@@ -192,17 +211,28 @@ class Client {
 
             stopReadingInput();
 
+            // Waiting for another player to join the game
+            // `w` (lowercase)
+            // Only sent if there is not yet a second player
+            // IF second player arrives, send "game starting" message
             if (nextByte == 'w') {
                 game.waitingForOpponent();
                 return true;
             }
 
+            // Game starting
+            // `x` – Game starting, you are X
+            // `o` – Game starting, you are O
+            // Indicate for each player if they are `X` or `O`
             if (nextByte == 'x' || nextByte == 'o') {
                 char role = Character.toUpperCase((char) nextByte);
                 game.gameStarting(role);
                 return true;
             }
 
+            // How many people before the player in the queue
+            // `Q` followed by byte with value 0…254
+            // 255 = lots (255 or more) players ahead of you
             if (nextByte == 'Q') {
                 if ((nextByte = in.read()) == -1) {
                     return false;
@@ -211,6 +241,9 @@ class Client {
                 return true;
             }
 
+            // Current state of the board
+            // String – each of 9 characters represents one square on the board (`X`, `O` or ` `)
+            // Always sent "square 1", "square 2", …, "square 9"
             if (nextByte == 'X' || nextByte == 'O' || nextByte == ' ') {
                 char[] board = new char[9];
                 int square = 0;
@@ -225,25 +258,39 @@ class Client {
                 return true;
             }
 
+            // Indicate who plays next
+            // Boolean – `1` = your turn, `0` = other player`s turn
             boolean yourTurn = nextByte == 1;
             if (yourTurn || nextByte == 0) {
                 game.nextTurn(yourTurn);
                 return true;
             }
 
+            // Incorrect move
+            // `I`
+            // Only sent if move is incorrect
+            // If correct, message with board and indicating other player`s move
             if (nextByte == 'I') {
                 game.invalidMove();
                 return true;
             }
 
+            // You won/lost/tied
+            // `W` = win (followed by byte with length of win streak)
+            // `L` = loss
+            // `T` = tie
             if (nextByte == 'W') {
+                // Indicate winning streak to winner
+                // Send at end of each game to winner
+                // Number – indicates length of the streak
+                // In binary, one byte of 1..255
+                // Streaks longer than 255 will be reported as 255
                 if ((nextByte = in.read()) == -1) {
                     return false;
                 }
                 game.gameWon(nextByte);
                 return true;
             }
-
             boolean tie = nextByte == 'T';
             if (tie || nextByte == 'L') {
                 game.gameLost(tie);
@@ -257,13 +304,10 @@ class Client {
         return false;
     }
 
-    /*
-     * Turn – Client chooses square _ for their move
-     *     1-9, with 1=top left, 2=top middle, 3=top right, 4=center left, … 9=bottom right
-     * Does the winner want to play again or not?
-     *     `Y` = yes, `N` = no
-     * Leave/disconnect (can occur mid-game)
-     *     `Q` (or just close socket)
+    /**
+     * Sends a message to the server.
+     *
+     * @return Boolean indicating success.
      */
     static boolean sendMessage(byte[] bytes) {
         try {
