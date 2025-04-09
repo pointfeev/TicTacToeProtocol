@@ -180,33 +180,6 @@ class ServerGame {
     }
 
     /**
-     * Checks the passed row (which can be a row, column, or a diagonal, determined by {@code startSquare}, {@code
-     * rowStep} and {@code columnStep}) for a win for the passed {@code role}.
-     *
-     * @param role        The role to check for the win.
-     * @param startSquare The square to begin iteration on.
-     * @param rowStep     The amount to increment the row after each iteration.
-     * @param columnStep  The amount to increment the column after each iteration.
-     * @return Boolean indicating whether the passed {@code role} won on the passed row.
-     */
-    boolean checkRow(char role, int startSquare, int rowStep, int columnStep) {
-        int filled = 0;
-        int row = startSquare / 3;
-        int column = startSquare % 3;
-        do {
-            int square = row * 3 + column;
-            if (board[square] == role) {
-                filled++;
-            } else {
-                break;
-            }
-            row += rowStep;
-            column += columnStep;
-        } while (row < 3 && column < 3);
-        return filled == 3;
-    }
-
-    /**
      * Checks the rows, columns and diagonals of the passed {@code square} for a win for the passed {@code role}.
      *
      * @param role   The role to check for the win.
@@ -214,17 +187,37 @@ class ServerGame {
      * @return Boolean indicating whether the passed {@code role} won.
      */
     boolean checkWin(char role, int square) {
-        int row = square / 3;
-        int column = square % 3;
-        if (checkRow(role, row * 3, 0, 1) // check row
-                || checkRow(role, column, 1, 0)) { // check column
+        // check row
+        int rowStart = (square / 3) * 3;
+        if (board[rowStart] == role && board[rowStart + 1] == role && board[rowStart + 2] == role) {
             return true;
         }
+
+        // check column
+        int columnStart = square % 3;
+        if (board[columnStart] == role && board[columnStart + 3] == role && board[columnStart + 6] == role) {
+            return true;
+        }
+
         if (square % 2 == 1) { // no need to check diagonals
             return false;
         }
-        return checkRow(role, 0, 1, 1) // check negative diagonal
-                || checkRow(role, 2, 1, -1); // check positive diagonal
+
+        // check main diagonal
+        if (square == 0 || square == 4 || square == 8) {
+            if (board[0] == role && board[4] == role && board[8] == role) {
+                return true;
+            }
+        }
+
+        // check anti diagonal
+        if (square == 2 || square == 4 || square == 6) {
+            if (board[2] == role && board[4] == role && board[6] == role) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
